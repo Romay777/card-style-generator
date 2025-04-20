@@ -8,6 +8,7 @@ import io # For handling images in memory
 from flask import Flask, request, jsonify, send_file
 from PIL import Image # Import Pillow
 from werkzeug.utils import secure_filename # For safe filenames
+from rembg import remove
 
 # --- Configuration --- (Move API Keys outside code in production!)
 API_KEY = '8DA5C10BB6C112ABC8A1631455344B59'
@@ -121,6 +122,11 @@ class FusionBrainAPI:
 def overlay_logo(background_data_base64, logo_path, position, card_width, card_height):
     """Overlays logo onto background. Returns final image as BytesIO object."""
     try:
+        with open(logo_path, 'rb') as f_in:
+            input_bytes = f_in.read()
+
+        output_bytes = remove(input_bytes)
+
         # Decode background image
         bg_image_data = base64.b64decode(background_data_base64)
         background = Image.open(io.BytesIO(bg_image_data)).convert("RGBA")
@@ -132,7 +138,7 @@ def overlay_logo(background_data_base64, logo_path, position, card_width, card_h
 
 
         # Open logo and ensure it has alpha channel
-        logo = Image.open(logo_path).convert("RGBA")
+        logo = Image.open(io.BytesIO(output_bytes)).convert("RGBA")
 
         # --- Calculate logo size (Example: Max 1/4 width, Max 1/4 height) ---
         max_logo_w = card_width // 4
