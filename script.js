@@ -6,17 +6,31 @@ document.addEventListener('DOMContentLoaded', () => {
     const logoPreviewArea = document.getElementById('logo-preview-area');
     const logoPreview = document.getElementById('logo-preview');
 
-    const promptInput = document.getElementById('prompt-input');
-    const styleSelect = document.getElementById('style-select'); // Get the style dropdown
-    const logoPosition = document.getElementById('logo-position');
+    // Background mode elements
+    const bgOptionGenerate = document.getElementById('bg-option-generate');
+    const bgOptionUpload = document.getElementById('bg-option-upload');
+    const generateInputs = document.getElementById('generate-inputs');
+    const uploadInputs = document.getElementById('upload-inputs');
 
+    // Generation specific elements
+    const promptInput = document.getElementById('prompt-input');
+    const styleSelect = document.getElementById('style-select');
+
+    // Upload specific elements
+    const bgUpload = document.getElementById('bg-upload');
+    const bgFilename = document.getElementById('bg-filename');
+    const bgPreviewArea = document.getElementById('bg-preview-area');
+    const bgPreview = document.getElementById('bg-preview');
+
+    const logoPosition = document.getElementById('logo-position');
     const generateBtn = document.getElementById('generate-btn');
     const loadingIndicator = document.getElementById('loading-indicator');
     const errorMessage = document.getElementById('error-message');
     const resultArea = document.getElementById('result-area');
-    const resultImage = document.getElementById('result-image'); // Target for final image
+    const resultImage = document.getElementById('result-image');
 
     let logoFile = null;
+    let backgroundFile = null; // Variable to store uploaded background file
 
     // --- Event Listeners ---
 
@@ -25,7 +39,6 @@ document.addEventListener('DOMContentLoaded', () => {
         logoFile = event.target.files[0];
         if (logoFile) {
             logoFilename.textContent = logoFile.name;
-            // Generate preview
             const reader = new FileReader();
             reader.onload = (e) => {
                 logoPreview.src = e.target.result;
@@ -40,99 +53,146 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
+     // Background Upload Handling & Preview
+     bgUpload.addEventListener('change', (event) => {
+        backgroundFile = event.target.files[0];
+        if (backgroundFile) {
+            bgFilename.textContent = backgroundFile.name;
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                bgPreview.src = e.target.result;
+                bgPreview.style.display = 'block';
+            }
+            reader.readAsDataURL(backgroundFile);
+        } else {
+            bgFilename.textContent = 'Фон не выбран...';
+            bgPreview.style.display = 'none';
+            bgPreview.src = '#';
+            backgroundFile = null;
+        }
+    });
+
+    // Radio Button Logic (Show/Hide relevant inputs & manage required attribute)
+    function handleModeChange() {
+        if (bgOptionGenerate.checked) {
+            generateInputs.classList.remove('hidden');
+            uploadInputs.classList.add('hidden');
+            // Set required for generate mode
+            promptInput.required = true;
+            styleSelect.required = true;
+            bgUpload.required = false; // Not required in generate mode
+            // Clear upload fields if user switches back
+            backgroundFile = null;
+            bgUpload.value = ''; // Reset file input
+            bgFilename.textContent = 'Фон не выбран...';
+            bgPreview.style.display = 'none';
+            bgPreview.src = '#';
+        } else { // bgOptionUpload is checked
+            generateInputs.classList.add('hidden');
+            uploadInputs.classList.remove('hidden');
+            // Set required for upload mode
+            promptInput.required = false;
+            styleSelect.required = false;
+            bgUpload.required = true; // Required in upload mode
+             // Clear generate fields if user switches
+             // promptInput.value = ''; // Optional: clear prompt
+             // styleSelect.value = ''; // Optional: reset style dropdown
+        }
+    }
+
+    bgOptionGenerate.addEventListener('change', handleModeChange);
+    bgOptionUpload.addEventListener('change', handleModeChange);
+
+
     // Form Submission Handler
     designForm.addEventListener('submit', async (event) => {
-        event.preventDefault(); // Prevent default form submission
+        event.preventDefault();
         console.log("Form submitted");
 
         // 1. Reset UI States
         hideError();
         resultArea.classList.add('hidden');
-        resultImage.src = "#"; // Clear previous result image
+        resultImage.src = "#";
 
-        // 2. Basic Client-Side Validation (Server will also validate)
+        // 2. Basic Client-Side Validation
         if (!logoFile) {
             showError('Пожалуйста, загрузите логотип компании.');
             return;
-        }
-        if (!promptInput.value.trim()) {
-             showError('Пожалуйста, введите промпт.');
-             return;
-        }
-         if (!styleSelect.value) {
-             showError('Пожалуйста, выберите стиль.');
-             return;
         }
          if (!logoPosition.value) {
              showError('Пожалуйста, выберите позицию логотипа.');
              return;
         }
 
+        const isGenerating = bgOptionGenerate.checked;
+        const formData = new FormData();
+        formData.append('logo', logoFile);
+        formData.append('position', logoPosition.value);
+        formData.append('mode', isGenerating ? 'generate' : 'upload');
+
+        if (isGenerating) {
+             if (!promptInput.value.trim()) {
+                 showError('Пожалуйста, введите промпт для генерации.');
+                 return;
+             }
+              if (!styleSelect.value) {
+                 showError('Пожалуйста, выберите стиль генерации.');
+                 return;
+             }
+             formData.append('prompt', promptInput.value.trim());
+             formData.append('style', styleSelect.value);
+        } else { // Uploading
+             if (!backgroundFile) {
+                showError('Пожалуйста, загрузите файл фона.');
+                return;
+             }
+             formData.append('backgroundFile', backgroundFile); // Add background file
+        }
 
         // 3. Show Loading Indicator
         showLoading(true);
-
-        // 4. Prepare data using FormData
-        const formData = new FormData();
-        formData.append('logo', logoFile);
-        formData.append('prompt', promptInput.value.trim());
-        formData.append('style', styleSelect.value);
-        formData.append('position', logoPosition.value);
-
         console.log("Sending data to backend...");
 
-        // 5. Send data to Flask backend
+        // 4. Send data to Flask backend
         try {
-            const response = await fetch('/generate-card', { // Endpoint defined in Flask
+            const response = await fetch('/generate-card', {
                 method: 'POST',
                 body: formData
-                // No 'Content-Type' header needed for FormData, browser sets it correctly
             });
 
             if (response.ok) {
-                 // Check content type to see if we got an image or JSON error
                  const contentType = response.headers.get("content-type");
                  if (contentType && contentType.startsWith("image/")) {
-                     // Got the image successfully
                      const imageBlob = await response.blob();
                      const imageObjectURL = URL.createObjectURL(imageBlob);
-                     resultImage.src = imageObjectURL; // Display the final composited image
+                     resultImage.src = imageObjectURL;
                      resultArea.classList.remove('hidden');
                      resultArea.scrollIntoView({ behavior: 'smooth' });
                      console.log("Image received and displayed.");
                  } else {
-                     // Probably got a JSON error from the backend
                      const errorData = await response.json();
                      showError(errorData.error || 'Неизвестная ошибка от сервера.');
                      console.error("Server returned JSON error:", errorData);
                  }
-
             } else {
-                // Handle HTTP errors (4xx, 5xx)
                 let errorMsg = `Ошибка сервера: ${response.status} ${response.statusText}`;
                 try {
-                     const errorData = await response.json(); // Try to parse JSON error body
-                     errorMsg = errorData.error || errorMsg; // Use specific error if available
+                     const errorData = await response.json();
+                     errorMsg = errorData.error || errorMsg;
                      console.error("Server returned error JSON:", errorData);
-                } catch (e) {
-                    // If response wasn't JSON
-                    console.error("Server returned non-JSON error response.");
-                }
+                } catch (e) { console.error("Server returned non-JSON error response."); }
                 showError(errorMsg);
             }
-
         } catch (error) {
-            // Handle network errors or other fetch issues
             console.error('Fetch error:', error);
             showError('Сетевая ошибка или ошибка при отправке запроса.');
         } finally {
-            // 6. Hide Loading Indicator regardless of outcome
             showLoading(false);
         }
     });
 
-    // --- Helper Functions ---
-    function showError(message) {
+    // --- Helper Functions (showError, hideError, showLoading - remain the same) ---
+     function showError(message) {
         errorMessage.textContent = message;
         errorMessage.classList.remove('hidden');
          errorMessage.scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -157,6 +217,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // REMOVED applyLogoPosition function
+    // Initial setup: Ensure correct fields are shown and required attributes are set
+    handleModeChange();
 
 }); // End DOMContentLoaded

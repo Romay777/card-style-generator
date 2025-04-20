@@ -15,9 +15,9 @@
             <img src="top_logo.png" alt="top logo" style="max-height: 50px;">
         </div>
         <h1>Создайте уникальный дизайн <span style="color: var(--sber-green);">Вашей</span> карты</h1>
-        <p class="subtitle">Загрузите логотип, опишите фон и выберите стиль.</p>
+        <p class="subtitle">Загрузите логотип, опишите или загрузите фон и выберите стиль.</p>
 
-        <form id="design-form"> <!-- Removed onsubmit -->
+        <form id="design-form">
 
             <div class="form-section">
                 <h2>1. Логотип Компании</h2>
@@ -32,29 +32,52 @@
             </div>
 
             <div class="form-section">
-                <h2>2. Фон Карты (ИИ Генерация)</h2>
-                <div>
-                    <label for="prompt-input">Опишите желаемый фон (промпт):</label>
-                    <textarea id="prompt-input" rows="3" placeholder="Пример: Абстрактные зеленые волны в минималистичном стиле" required></textarea>
+                <h2>2. Фон Карты</h2>
+                 <!-- Radio Buttons for Mode Selection -->
+                <div class="option-group">
+                    <input type="radio" id="bg-option-generate" name="bg-option" value="generate" checked>
+                    <label for="bg-option-generate">Сгенерировать с помощью ИИ</label>
                 </div>
-                 <div style="margin-top: 15px;"> <!-- Add margin -->
-                    <label for="style-select">Выберите стиль генерации:</label>
-                    <select id="style-select" required>
-                        <option value="" disabled selected>-- Выберите стиль --</option>
-                        <!-- Styles will be populated by JS or hardcoded here -->
-                        <option value="DEFAULT">Свой стиль (Default)</option>
-                        <option value="KANDINSKY">Кандинский</option>
-                        <option value="UHD">Детальное фото (UHD)</option>
-                        <option value="ANIME">Аниме</option>
-                        <!-- Add other styles from API if needed -->
-                    </select>
+                 <div class="option-group" style="margin-bottom: 20px;"> <!-- Added margin -->
+                    <input type="radio" id="bg-option-upload" name="bg-option" value="upload">
+                    <label for="bg-option-upload">Загрузить свой фон</label>
+                </div>
+
+                <!-- Generation Inputs (Initially visible) -->
+                <div id="generate-inputs">
+                    <div>
+                        <label for="prompt-input">Опишите желаемый фон (промпт):</label>
+                        <textarea id="prompt-input" rows="3" placeholder="Пример: Абстрактные зеленые волны в минималистичном стиле" required></textarea>
+                    </div>
+                    <div style="margin-top: 15px;">
+                        <label for="style-select">Выберите стиль генерации:</label>
+                        <select id="style-select" required>
+                            <option value="" disabled selected>-- Выберите стиль --</option>
+                            <option value="DEFAULT">Свой стиль (Default)</option>
+                            <option value="KANDINSKY">Кандинский</option>
+                            <option value="UHD">Детальное фото (UHD)</option>
+                            <option value="ANIME">Аниме</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Upload Inputs (Initially hidden) -->
+                <div id="upload-inputs" class="hidden">
+                    <label for="bg-upload" class="file-label">
+                        <span class="file-button">Выбрать файл фона</span>
+                        <span id="bg-filename" class="filename">Фон не выбран...</span>
+                    </label>
+                    <input type="file" id="bg-upload" accept="image/png, image/jpeg"> <!-- Required будет управляться JS -->
+                    <div class="preview-area" id="bg-preview-area" style="margin-top: 10px; width: 200px; height: 120px;"> <!-- Adjusted style -->
+                        <img id="bg-preview" src="#" alt="Предпросмотр фона" />
+                    </div>
                 </div>
             </div>
 
             <div class="form-section">
                 <h2>3. Положение Логотипа</h2>
                 <label for="logo-position">Выберите позицию на карте:</label>
-                <select id="logo-position" required> <!-- Added required -->
+                <select id="logo-position" required>
                     <option value="center">По центру</option>
                     <option value="top-left">Сверху слева</option>
                     <option value="top-right">Сверху справа</option>
@@ -64,7 +87,7 @@
             </div>
 
             <div class="form-section action-section">
-                 <button type="submit" id="generate-btn" class="cta-button">Создать Дизайн</button> <!-- Changed type to submit -->
+                 <button type="submit" id="generate-btn" class="cta-button">Создать Дизайн</button>
                  <div id="loading-indicator" class="hidden">
                     <div class="spinner"></div>
                     <span>Генерируем и обрабатываем...</span>
@@ -76,11 +99,8 @@
 
         <div id="result-area" class="result-section hidden">
             <h2>Ваш дизайн карты готов!</h2>
-            <!-- Removed the explanatory paragraph -->
             <div class="card-mockup">
-                 <!-- This image will now show the FINAL composited image from the backend -->
                  <img id="result-image" src="#" alt="Результат дизайна карты">
-                 <!-- REMOVED result-logo-overlay div -->
             </div>
         </div>
 
