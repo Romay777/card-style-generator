@@ -7,100 +7,235 @@
     <link rel="stylesheet" href="style.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 </head>
 <body>
     <div class="container">
-        <div style="display: flex; justify-content: center; align-items: center; margin: 20px 0;">
-            <img src="top_logo.png" alt="top logo" style="max-height: 50px;">
+        <div class="header">
+            <img src="top_logo.png" alt="top logo" class="logo">
         </div>
-        <h1>Создайте уникальный дизайн <span style="color: var(--sber-green);">Вашей</span> карты</h1>
-        <p class="subtitle">Загрузите логотип, опишите или загрузите фон и выберите стиль.</p>
+
+        <div class="hero-section">
+            <h1>Создайте уникальный дизайн <span class="accent-text">Вашей</span> карты</h1>
+            <p class="subtitle">Персонализируйте зарплатную карту в несколько кликов</p>
+        </div>
 
         <form id="design-form">
+            <div class="progress-bar">
+                <div class="progress-step active">1</div>
+                <div class="progress-line"></div>
+                <div class="progress-step">2</div>
+                <div class="progress-line"></div>
+                <div class="progress-step">3</div>
+            </div>
 
-            <div class="form-section">
-                <h2>1. Логотип Компании</h2>
-                <label for="logo-upload" class="file-label">
-                    <span class="file-button">Выбрать файл</span>
-                    <span id="logo-filename" class="filename">Логотип не выбран...</span>
-                </label>
+            <div class="form-section active" id="section-1">
+                <div class="section-header">
+                    <h2>Логотип Компании</h2>
+                    <p class="section-subtitle">Загрузите логотип вашей компании</p>
+                </div>
+
+                <div class="upload-area" id="logo-dropzone">
+                    <div class="upload-icon">
+                        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M12 16V8M12 8L9 11M12 8L15 11M7 4H17C19.2091 4 21 5.79086 21 8V16C21 18.2091 19.2091 20 17 20H7C4.79086 20 3 18.2091 3 16V8C3 5.79086 4.79086 4 7 4Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                    </div>
+                    <p class="upload-text">Перетащите файл или <span class="upload-link">выберите с устройства</span></p>
+                    <p class="upload-hint">PNG, JPG или SVG • до 5MB</p>
+                </div>
                 <input type="file" id="logo-upload" accept="image/png, image/jpeg, image/svg+xml" required>
+
                 <div class="preview-area" id="logo-preview-area">
                     <img id="logo-preview" src="#" alt="Предпросмотр логотипа" />
+                    <button type="button" class="remove-preview" id="remove-logo">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M18 6L6 18M6 6L18 18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                    </button>
+                </div>
+
+                <div class="form-nav">
+                    <button type="button" class="next-btn" data-next="section-2">Далее</button>
                 </div>
             </div>
 
-            <div class="form-section">
-                <h2>2. Фон Карты</h2>
-                 <!-- Radio Buttons for Mode Selection -->
-                <div class="option-group">
-                    <input type="radio" id="bg-option-generate" name="bg-option" value="generate" checked>
-                    <label for="bg-option-generate">Сгенерировать с помощью ИИ</label>
-                </div>
-                 <div class="option-group" style="margin-bottom: 20px;"> <!-- Added margin -->
-                    <input type="radio" id="bg-option-upload" name="bg-option" value="upload">
-                    <label for="bg-option-upload">Загрузить свой фон</label>
+            <div class="form-section" id="section-2">
+                <div class="section-header">
+                    <h2>Фон Карты</h2>
+                    <p class="section-subtitle">Выберите способ создания фона</p>
                 </div>
 
-                <!-- Generation Inputs (Initially visible) -->
-                <div id="generate-inputs">
-                    <div>
-                        <label for="prompt-input">Опишите желаемый фон (промпт):</label>
-                        <textarea id="prompt-input" rows="3" placeholder="Пример: Абстрактные зеленые волны в минималистичном стиле" required></textarea>
+                <div class="option-tabs">
+                    <div class="option-tab active" data-target="generate-inputs">
+                        <div class="tab-icon">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M12 22C17.5228 22 22 17.5228 22 12C22 6.47715 17.5228 2 12 2C6.47715 2 2 6.47715 2 12C2 17.5228 6.47715 22 12 22Z" stroke="currentColor" stroke-width="2"/>
+                                <path d="M8 14.5C9.5 16.5 14.5 16.5 16 14.5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                                <path d="M9 10C9 10.5523 8.55228 11 8 11C7.44772 11 7 10.5523 7 10C7 9.44772 7.44772 9 8 9C8.55228 9 9 9.44772 9 10Z" fill="currentColor"/>
+                                <path d="M17 10C17 10.5523 16.5523 11 16 11C15.4477 11 15 10.5523 15 10C15 9.44772 15.4477 9 16 9C16.5523 9 17 9.44772 17 10Z" fill="currentColor"/>
+                            </svg>
+                        </div>
+                        <div class="tab-text">Сгенерировать с ИИ</div>
                     </div>
-                    <div style="margin-top: 15px;">
-                        <label for="style-select">Выберите стиль генерации:</label>
-                        <select id="style-select" required>
-                            <option value="" disabled selected>-- Выберите стиль --</option>
-                            <option value="DEFAULT">Свой стиль (Default)</option>
-                            <option value="KANDINSKY">Кандинский</option>
-                            <option value="UHD">Детальное фото (UHD)</option>
-                            <option value="ANIME">Аниме</option>
-                        </select>
+                    <div class="option-tab" data-target="upload-inputs">
+                        <div class="tab-icon">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M21 12V17C21 19.2091 19.2091 21 17 21H7C4.79086 21 3 19.2091 3 17V12M16 8L12 4M12 4L8 8M12 4V16" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            </svg>
+                        </div>
+                        <div class="tab-text">Загрузить свой</div>
+                    </div>
+                </div>
+                <input type="hidden" name="bg-option" id="bg-option" value="generate">
+
+                <div id="generate-inputs" class="tab-content active">
+                    <div class="form-group">
+                        <label for="prompt-input">Опишите желаемый фон:</label>
+                        <textarea id="prompt-input" rows="3" placeholder="Например: Абстрактные зеленые волны в минималистичном стиле" required></textarea>
+                    </div>
+
+                    <div class="style-grid">
+                        <label class="style-option">
+                            <input type="radio" name="style-select" value="DEFAULT" checked>
+                            <div class="style-card">
+                                <div class="style-preview default-style"></div>
+                                <span>Свой стиль</span>
+                            </div>
+                        </label>
+                        <label class="style-option">
+                            <input type="radio" name="style-select" value="KANDINSKY">
+                            <div class="style-card">
+                                <div class="style-preview kandinsky-style"></div>
+                                <span>Кандинский</span>
+                            </div>
+                        </label>
+                        <label class="style-option">
+                            <input type="radio" name="style-select" value="UHD">
+                            <div class="style-card">
+                                <div class="style-preview uhd-style"></div>
+                                <span>Детальное фото</span>
+                            </div>
+                        </label>
+                        <label class="style-option">
+                            <input type="radio" name="style-select" value="ANIME">
+                            <div class="style-card">
+                                <div class="style-preview anime-style"></div>
+                                <span>Аниме</span>
+                            </div>
+                        </label>
                     </div>
                 </div>
 
-                <!-- Upload Inputs (Initially hidden) -->
-                <div id="upload-inputs" class="hidden">
-                    <label for="bg-upload" class="file-label">
-                        <span class="file-button">Выбрать файл фона</span>
-                        <span id="bg-filename" class="filename">Фон не выбран...</span>
-                    </label>
-                    <input type="file" id="bg-upload" accept="image/png, image/jpeg"> <!-- Required будет управляться JS -->
-                    <div class="preview-area" id="bg-preview-area" style="margin-top: 10px; width: 200px; height: 120px;"> <!-- Adjusted style -->
+                <div id="upload-inputs" class="tab-content">
+                    <div class="upload-area" id="bg-dropzone">
+                        <div class="upload-icon">
+                            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M21 12V17C21 19.2091 19.2091 21 17 21H7C4.79086 21 3 19.2091 3 17V12M16 8L12 4M12 4L8 8M12 4V16" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            </svg>
+                        </div>
+                        <p class="upload-text">Перетащите фон или <span class="upload-link">выберите с устройства</span></p>
+                        <p class="upload-hint">PNG или JPG • до 5MB</p>
+                    </div>
+                    <input type="file" id="bg-upload" accept="image/png, image/jpeg">
+
+                    <div class="preview-area" id="bg-preview-area">
                         <img id="bg-preview" src="#" alt="Предпросмотр фона" />
+                        <button type="button" class="remove-preview" id="remove-bg">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M18 6L6 18M6 6L18 18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            </svg>
+                        </button>
                     </div>
                 </div>
-            </div>
 
-            <div class="form-section">
-                <h2>3. Положение Логотипа</h2>
-                <label for="logo-position">Выберите позицию на карте:</label>
-                <select id="logo-position" required>
-                    <option value="center">По центру</option>
-                    <option value="top-left">Сверху слева</option>
-                    <option value="top-right">Сверху справа</option>
-                    <option value="bottom-left">Снизу слева</option>
-                    <option value="bottom-right">Снизу справа</option>
-                </select>
-            </div>
-
-            <div class="form-section action-section">
-                 <button type="submit" id="generate-btn" class="cta-button">Создать Дизайн</button>
-                 <div id="loading-indicator" class="hidden">
-                    <div class="spinner"></div>
-                    <span>Генерируем и обрабатываем...</span>
+                <div class="form-nav">
+                    <button type="button" class="back-btn" data-back="section-1">Назад</button>
+                    <button type="button" class="next-btn" data-next="section-3">Далее</button>
                 </div>
-                 <div id="error-message" class="error hidden"></div>
             </div>
 
-        </form> <!-- End of form -->
+            <div class="form-section" id="section-3">
+                <div class="section-header">
+                    <h2>Положение Логотипа</h2>
+                    <p class="section-subtitle">Выберите расположение на карте</p>
+                </div>
+
+                <div class="logo-position-selector">
+                    <div class="card-outline">
+                        <div class="position-option" data-position="top-left">
+                            <input type="radio" name="logo-position" id="pos-top-left" value="top-left">
+                            <label for="pos-top-left"></label>
+                        </div>
+                        <div class="position-option" data-position="top-right">
+                            <input type="radio" name="logo-position" id="pos-top-right" value="top-right">
+                            <label for="pos-top-right"></label>
+                        </div>
+                        <div class="position-option" data-position="center">
+                            <input type="radio" name="logo-position" id="pos-center" value="center" checked>
+                            <label for="pos-center"></label>
+                        </div>
+                        <div class="position-option" data-position="bottom-left">
+                            <input type="radio" name="logo-position" id="pos-bottom-left" value="bottom-left">
+                            <label for="pos-bottom-left"></label>
+                        </div>
+                        <div class="position-option" data-position="bottom-right">
+                            <input type="radio" name="logo-position" id="pos-bottom-right" value="bottom-right">
+                            <label for="pos-bottom-right"></label>
+                        </div>
+                        <div class="logo-preview" id="logo-position-preview"></div>
+                    </div>
+                </div>
+
+                <div class="form-nav">
+                    <button type="button" class="back-btn" data-back="section-2">Назад</button>
+                    <button type="submit" id="generate-btn" class="submit-btn">Создать Дизайн</button>
+                </div>
+            </div>
+
+        </form>
+
+        <div id="loading-indicator" class="hidden">
+            <div class="loading-animation">
+                <div class="spinner"></div>
+                <div class="spinner-text">
+                    <span class="loading-title">Создаем ваш дизайн</span>
+                    <span class="loading-subtitle">Это займет несколько секунд</span>
+                </div>
+            </div>
+            <div class="loading-progress">
+                <div class="progress-bar-outer">
+                    <div class="progress-bar-inner"></div>
+                </div>
+            </div>
+        </div>
+
+        <div id="error-message" class="error hidden"></div>
 
         <div id="result-area" class="result-section hidden">
-            <h2>Ваш дизайн карты готов!</h2>
-            <div class="card-mockup">
-                 <img id="result-image" src="#" alt="Результат дизайна карты">
+            <div class="result-header">
+                <h2>Ваш дизайн карты готов!</h2>
+                <p class="result-subtitle">Можно использовать для зарплатных карт вашей компании</p>
+            </div>
+
+            <div class="card-showcase">
+                <div class="card-mockup">
+                    <img id="result-image" src="#" alt="Результат дизайна карты">
+                </div>
+                <div class="card-actions">
+                    <button id="download-btn" class="action-btn primary">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M21 15V16.2C21 17.8802 21 18.7202 20.673 19.362C20.3854 19.9265 19.9265 20.3854 19.362 20.673C18.7202 21 17.8802 21 16.2 21H7.8C6.11984 21 5.27976 21 4.63803 20.673C4.07354 20.3854 3.6146 19.9265 3.32698 19.362C3 18.7202 3 17.8802 3 16.2V15M17 10L12 15M12 15L7 10M12 15V3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                        Скачать дизайн
+                    </button>
+                    <button id="restart-btn" class="action-btn secondary">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M19.7285 10.9288C20.4413 13.5978 19.7507 16.5635 17.6569 18.6573C14.5327 21.7815 9.46734 21.7815 6.34315 18.6573C3.21895 15.5331 3.21895 10.4677 6.34315 7.34353C9.46734 4.21934 14.5327 4.21934 17.6569 7.34353M17.6569 7.34353L21 4M17.6569 7.34353L14 4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                        Создать новый
+                    </button>
+                </div>
             </div>
         </div>
 
