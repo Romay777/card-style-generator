@@ -1,0 +1,300 @@
+/* Basic Reset & Font */
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    font-family: 'Roboto', sans-serif;
+    background-color: #f8f9fa; /* Slightly off-white */
+    color: #333;
+    line-height: 1.6;
+    padding: 20px;
+}
+
+/* Sberbank-like Colors */
+:root {
+    --sber-green: #2a9b4f; /* Primary Sber green */
+    --sber-green-light: #e9f5ec; /* Light green accent */
+    --sber-green-dark: #1e7b3e; /* Darker green for hover */
+    --text-color: #333;
+    --border-color: #ced4da;
+    --background-light: #fff;
+    --background-grey: #f8f9fa;
+    --error-red: #dc3545;
+}
+
+/* Container */
+.container {
+    max-width: 700px;
+    margin: 20px auto;
+    background-color: var(--background-light);
+    padding: 30px 40px;
+    border-radius: 12px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+    border: 1px solid #e0e0e0;
+}
+
+/* Headings and Text */
+h1 {
+    color: var(--sber-green);
+    text-align: center;
+    margin-bottom: 10px;
+    font-weight: 500;
+}
+
+h2 {
+    color: var(--text-color);
+    margin-bottom: 15px;
+    padding-bottom: 5px;
+    border-bottom: 1px solid #eee;
+    font-weight: 500;
+    font-size: 1.3em;
+}
+
+.subtitle {
+    text-align: center;
+    color: #6c757d;
+    margin-bottom: 30px;
+}
+
+/* Form Sections */
+.form-section {
+    margin-bottom: 30px;
+}
+
+label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: 500;
+    color: #495057;
+}
+
+/* Input fields */
+textarea,
+select {
+    width: 100%;
+    padding: 12px 15px;
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    font-size: 1rem;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+textarea {
+    resize: vertical;
+    min-height: 70px;
+}
+
+textarea:focus,
+select:focus {
+    outline: none;
+    border-color: var(--sber-green);
+    box-shadow: 0 0 0 3px rgba(42, 155, 79, 0.15);
+}
+
+/* File Input Styling */
+input[type="file"] {
+    display: none; /* Hide the default input */
+}
+
+.file-label {
+    display: inline-flex; /* Use inline-flex for better alignment */
+    align-items: center; /* Vertically center items */
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    padding: 0; /* Remove padding from label */
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+    width: 100%; /* Make label take full width */
+    background-color: var(--background-light);
+}
+
+.file-label:hover {
+    background-color: #f1f1f1;
+}
+
+.file-button {
+    background-color: #e9ecef;
+    padding: 10px 15px;
+    border-right: 1px solid var(--border-color);
+    border-radius: 6px 0 0 6px; /* Round left corners */
+    white-space: nowrap;
+    font-weight: 400;
+    color: #495057;
+}
+
+.filename {
+    padding-left: 15px;
+    font-style: italic;
+    color: #6c757d;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis; /* Add ellipsis if name is too long */
+    flex-grow: 1; /* Allow filename to take remaining space */
+}
+
+/* Radio Buttons */
+.option-group {
+    margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+}
+
+.option-group input[type="radio"] {
+    margin-right: 8px;
+    accent-color: var(--sber-green); /* Style the radio button itself */
+    cursor: pointer;
+    transform: scale(1.1);
+}
+
+.option-group label {
+    margin-bottom: 0; /* Remove bottom margin for radio labels */
+    font-weight: 400;
+    cursor: pointer;
+}
+
+/* Preview Area */
+.preview-area {
+    margin-top: 10px;
+    width: 150px; /* Fixed width for logo preview */
+    height: 90px; /* Fixed height */
+    border: 1px dashed var(--border-color);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    overflow: hidden; /* Hide parts of image that don't fit */
+    background-color: #fdfdfd;
+    border-radius: 4px;
+}
+#bg-preview-area { /* Different size for background */
+     width: 200px;
+     height: 120px;
+}
+
+.preview-area img {
+    display: none; /* Hidden by default */
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain; /* Scale down to fit, maintaining aspect ratio */
+}
+
+/* Action Button & Loading/Error */
+.action-section {
+    text-align: center;
+    margin-top: 30px;
+}
+
+.cta-button {
+    background-color: var(--sber-green);
+    color: white;
+    padding: 12px 30px;
+    border: none;
+    border-radius: 25px; /* Pill shape */
+    font-size: 1.1rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background-color 0.3s ease, transform 0.1s ease;
+    display: inline-block; /* Ensure it doesn't take full width */
+}
+
+.cta-button:hover {
+    background-color: var(--sber-green-dark);
+}
+.cta-button:active {
+    transform: scale(0.98);
+}
+
+#loading-indicator {
+    margin-top: 15px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--sber-green);
+    font-weight: 500;
+}
+
+.spinner {
+    border: 3px solid var(--sber-green-light); /* Light grey */
+    border-top: 3px solid var(--sber-green); /* Blue */
+    border-radius: 50%;
+    width: 20px;
+    height: 20px;
+    animation: spin 1s linear infinite;
+    margin-right: 10px;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+.error {
+    margin-top: 15px;
+    color: var(--error-red);
+    font-weight: 500;
+    text-align: center;
+}
+
+
+/* Result Section */
+.result-section {
+    margin-top: 40px;
+    padding-top: 20px;
+    border-top: 1px solid #eee;
+    text-align: center;
+}
+
+.result-section h2 {
+    border-bottom: none;
+    margin-bottom: 5px;
+}
+
+.result-section p {
+    font-size: 0.9em;
+    color: #6c757d;
+    margin-bottom: 20px;
+}
+
+.card-mockup {
+    width: 337px; /* Standard card aspect ratio (approx 85.6x53.98mm) */
+    height: 212px;
+    border-radius: 12px;
+    overflow: hidden;
+    margin: 0 auto;
+    position: relative; /* For positioning the logo overlay */
+    box-shadow: 0 5px 15px rgba(0,0,0,0.15);
+    background-color: #e0e0e0; /* Placeholder background */
+}
+
+#result-image {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover; /* Cover the area */
+}
+
+/* Logo Overlay (for simulation) */
+#result-logo-overlay {
+    position: absolute;
+    /* 'top', 'left', 'right', 'bottom' will be set by JS */
+    max-width: 30%; /* Example constraint */
+    max-height: 25%; /* Example constraint */
+    transform: translate(-50%, -50%); /* Default for center, adjusted by JS */
+}
+
+#result-logo-overlay img {
+    display: block;
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain;
+    /* Optional: add a subtle drop shadow if needed for visibility */
+    /* filter: drop-shadow(1px 1px 2px rgba(0,0,0,0.5)); */
+}
+
+
+/* Utility */
+.hidden {
+    display: none !important;
+}

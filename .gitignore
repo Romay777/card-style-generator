@@ -1,0 +1,5 @@
+uploads/*
+results/*
+/.venv/
+/.idea
+

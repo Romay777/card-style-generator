@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Генератор Дизайна Зарплатных Карт</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="container">
+        <h1>Создайте уникальный дизайн <span style="color: var(--sber-green);">Вашей</span> карты</h1>
+        <p class="subtitle">Загрузите логотип, опишите фон и выберите стиль.</p>
+
+        <form id="design-form"> <!-- Removed onsubmit -->
+
+            <div class="form-section">
+                <h2>1. Логотип Компании</h2>
+                <label for="logo-upload" class="file-label">
+                    <span class="file-button">Выбрать файл</span>
+                    <span id="logo-filename" class="filename">Логотип не выбран...</span>
+                </label>
+                <input type="file" id="logo-upload" accept="image/png, image/jpeg, image/svg+xml" required>
+                <div class="preview-area" id="logo-preview-area">
+                    <img id="logo-preview" src="#" alt="Предпросмотр логотипа" />
+                </div>
+            </div>
+
+            <div class="form-section">
+                <h2>2. Фон Карты (ИИ Генерация)</h2>
+                <div>
+                    <label for="prompt-input">Опишите желаемый фон (промпт):</label>
+                    <textarea id="prompt-input" rows="3" placeholder="Пример: Абстрактные зеленые волны в минималистичном стиле" required></textarea>
+                </div>
+                 <div style="margin-top: 15px;"> <!-- Add margin -->
+                    <label for="style-select">Выберите стиль генерации:</label>
+                    <select id="style-select" required>
+                        <option value="" disabled selected>-- Выберите стиль --</option>
+                        <!-- Styles will be populated by JS or hardcoded here -->
+                        <option value="DEFAULT">Свой стиль (Default)</option>
+                        <option value="KANDINSKY">Кандинский</option>
+                        <option value="UHD">Детальное фото (UHD)</option>
+                        <option value="ANIME">Аниме</option>
+                        <!-- Add other styles from API if needed -->
+                    </select>
+                </div>
+            </div>
+
+            <div class="form-section">
+                <h2>3. Положение Логотипа</h2>
+                <label for="logo-position">Выберите позицию на карте:</label>
+                <select id="logo-position" required> <!-- Added required -->
+                    <option value="center">По центру</option>
+                    <option value="top-left">Сверху слева</option>
+                    <option value="top-right">Сверху справа</option>
+                    <option value="bottom-left">Снизу слева</option>
+                    <option value="bottom-right">Снизу справа</option>
+                </select>
+            </div>
+
+            <div class="form-section action-section">
+                 <button type="submit" id="generate-btn" class="cta-button">Создать Дизайн</button> <!-- Changed type to submit -->
+                 <div id="loading-indicator" class="hidden">
+                    <div class="spinner"></div>
+                    <span>Генерируем и обрабатываем...</span>
+                </div>
+                 <div id="error-message" class="error hidden"></div>
+            </div>
+
+        </form> <!-- End of form -->
+
+        <div id="result-area" class="result-section hidden">
+            <h2>Ваш дизайн карты готов!</h2>
+            <!-- Removed the explanatory paragraph -->
+            <div class="card-mockup">
+                 <!-- This image will now show the FINAL composited image from the backend -->
+                 <img id="result-image" src="#" alt="Результат дизайна карты">
+                 <!-- REMOVED result-logo-overlay div -->
+            </div>
+        </div>
+
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
