@@ -68,7 +68,7 @@ class FusionBrainAPI:
             print(f"Error starting generation: {e}")
             raise
 
-    def check_generation(self, request_id, attempts=20, delay=10):
+    def check_generation(self, request_id, attempts=20, delay=5):
         # ... (keep existing code) ...
         print(f"Checking status for UUID: {request_id}")
         while attempts > 0:
