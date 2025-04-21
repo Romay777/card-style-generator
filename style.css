@@ -624,24 +624,6 @@ textarea:focus {
     font-weight: 500;
 }
 
-/* Logo Position Selector */
-.logo-position-selector {
-    display: flex;
-    justify-content: center;
-    margin: 30px 0;
-}
-
-.card-outline {
-    width: 300px;
-    height: 190px;
-    border-radius: 16px;
-    background-color: var(--surface-variant);
-    position: relative;
-    box-shadow: var(--shadow-sm);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
 
 .card-showcase {
     display: flex;
@@ -671,54 +653,6 @@ textarea:focus {
     margin-top: 8px;
 }
 
-.position-option input[type="radio"]:checked + label {
-    border-color: var(--primary);
-    background-color: var(--primary-light);
-    box-shadow: 0 0 0 2px var(--primary);
-}
-
-.position-option[data-position="top-left"] {
-    top: 20px;
-    left: 20px;
-}
-
-.position-option[data-position="top-right"] {
-    top: 20px;
-    right: 20px;
-}
-
-.position-option[data-position="center"] {
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-}
-
-.position-option[data-position="bottom-left"] {
-    bottom: 20px;
-    left: 20px;
-}
-
-.position-option[data-position="bottom-right"] {
-    bottom: 20px;
-    right: 20px;
-}
-
-.position-option input[type="radio"] {
-    display: none;
-}
-
-.position-option label {
-    display: block;
-    width: 40px;
-    height: 40px;
-    border-radius: 50%;
-    border: 2px solid var(--border);
-    background-color: rgba(255, 255, 255, 0.6);
-    cursor: pointer;
-    transition: var(--transition);
-}
-
-.position-option input[type="radio"]:checked +
 
 .result-section {
     text-align: center;
@@ -818,4 +752,104 @@ textarea:focus {
 @keyframes pulse {
     0% { box-shadow: 0 0 0 4px rgba(13, 157, 116, 0.15); }
     100% { box-shadow: 0 0 0 6px rgba(13, 157, 116, 0.25); }
+}
+
+
+.interactive-card-area {
+    display: flex;
+    justify-content: center;
+    margin: 30px 0;
+}
+
+.interactive-card-preview {
+    width: 340px; /* Same as card-mockup width */
+    height: 214px; /* Same as card-mockup height */
+    border-radius: var(--radius-lg);
+    background-color: var(--surface-variant);
+    position: relative; /* Crucial for positioning the logo */
+    box-shadow: var(--shadow-md);
+    overflow: hidden; /* Prevent logo dragging outside */
+    cursor: crosshair; /* Indicate interaction area */
+    background-image: linear-gradient(45deg, #f1f5f9 25%, #e2e8f0 25%, #e2e8f0 50%, #f1f5f9 50%, #f1f5f9 75%, #e2e8f0 75%, #e2e8f0 100%);
+    background-size: 40px 40px; /* Optional checkerboard */
+}
+
+/* Modify existing .logo-preview or add if removed */
+.logo-preview.draggable-logo {
+    /* Sizing will be controlled by JS based on slider */
+    /* Initial/base size can be set here if needed, but JS overrides */
+    width: 100px; /* Example base width */
+    height: auto; /* Maintain aspect ratio */
+    background-color: transparent; /* No extra background needed */
+    background-size: contain;
+    background-repeat: no-repeat;
+    background-position: center;
+    border-radius: 4px;
+    box-shadow: var(--shadow-sm); /* Keep the shadow */
+    position: absolute; /* Essential for dragging */
+    top: 50%; /* Initial position (JS will update) */
+    left: 50%; /* Initial position (JS will update) */
+    transform: translate(-50%, -50%) scale(0.5); /* Initial center and scale */
+    transform-origin: center center; /* Scale from the center */
+    cursor: grab; /* Indicate it's draggable */
+    user-select: none; /* Prevent text selection during drag */
+    transition: transform 0.1s ease-out, box-shadow 0.2s ease; /* Smooth scale transition */
+    border: 1px dashed rgba(0,0,0,0.1); /* Visual aid while placing */
+    display: none; /* Initially hidden until logo loaded */
+}
+
+.logo-preview.draggable-logo.dragging {
+    cursor: grabbing;
+    box-shadow: var(--shadow-lg);
+    border: 1px dashed var(--primary);
+}
+
+.logo-size-control {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+    margin-top: 20px;
+}
+
+#logo-size-slider {
+    flex-grow: 1;
+    max-width: 300px;
+    cursor: pointer;
+}
+
+#logo-size-value {
+    font-weight: 500;
+    min-width: 40px; /* Prevent layout shifts */
+    text-align: right;
+}
+
+/* Optional: Style the range input */
+input[type=range] {
+    height: 24px;
+    -webkit-appearance: none;
+    margin: 10px 0;
+    background: transparent;
+}
+input[type=range]:focus {
+    outline: none;
+}
+input[type=range]::-webkit-slider-runnable-track {
+    width: 100%;
+    height: 6px;
+    cursor: pointer;
+    background: var(--primary-light);
+    border-radius: 3px;
+    border: 0.2px solid var(--border-light);
+}
+input[type=range]::-webkit-slider-thumb {
+    box-shadow: var(--shadow-sm);
+    border: 1px solid var(--primary-dark);
+    height: 18px;
+    width: 18px;
+    border-radius: 50%;
+    background: var(--primary);
+    cursor: pointer;
+    -webkit-appearance: none;
+    margin-top: -7px; /* Adjust vertically */
 }

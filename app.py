@@ -125,7 +125,7 @@ class FusionBrainAPI:
 
 
 # --- Image Composition Function (Minor refactoring for clarity) ---
-def overlay_logo(background_base64, logo_bytes, position, card_width, card_height):
+def overlay_logo(background_base64, logo_bytes, logo_x_rel, logo_y_rel, logo_scale, card_width, card_height):
     """Overlays logo (already processed by rembg) onto background (as base64)."""
     try:
         # Decode background
@@ -133,7 +133,7 @@ def overlay_logo(background_base64, logo_bytes, position, card_width, card_heigh
         background = Image.open(io.BytesIO(bg_image_data)).convert("RGBA")
 
         # Optional: Apply basic background retouching here if desired
-        # background = ImageOps.autocontrast(background.convert("RGB"), cutoff=0.5).convert("RGBA")
+        background = ImageOps.autocontrast(background.convert("RGB"), cutoff=0.5).convert("RGBA")
         # enhancer_sharp = ImageEnhance.Sharpness(background); background = enhancer_sharp.enhance(1.1)
 
         # Ensure background matches target size
@@ -144,26 +144,37 @@ def overlay_logo(background_base64, logo_bytes, position, card_width, card_heigh
         # Open logo from bytes (already processed by rembg)
         logo = Image.open(io.BytesIO(logo_bytes)).convert("RGBA")
 
-        # Calculate logo size
-        max_logo_w = card_width // 4
-        max_logo_h = card_height // 4
-        logo.thumbnail((max_logo_w, max_logo_h), Image.Resampling.LANCZOS)
-        logo_w, logo_h = logo.size
-        print(f"Resized logo dimensions: {logo_w}x{logo_h}")
+        base_max_logo_w = card_width * 0.25
+        aspect_ratio = logo.height / logo.width
+        target_logo_w = int(base_max_logo_w * logo_scale)
+        target_logo_h = int(target_logo_w * aspect_ratio)
 
-        # Calculate position
-        margin = int(card_width * 0.03)
-        x, y = 0, 0
-        if position == 'top-left': x, y = margin, margin
-        elif position == 'top-right': x, y = card_width - logo_w - margin, margin
-        elif position == 'bottom-left': x, y = margin, card_height - logo_h - margin
-        elif position == 'bottom-right': x, y = card_width - logo_w - margin, card_height - logo_h - margin
-        elif position == 'center': x, y = (card_width - logo_w) // 2, (card_height - logo_h) // 2
-        else: x, y = margin, margin; print(f"Warning: Unknown logo position '{position}', defaulting to top-left.")
-        paste_position = (x, y)
-        print(f"Pasting logo at: {paste_position}")
+        target_logo_w = max(target_logo_w, 5)
+        target_logo_h = max(target_logo_h, 5)
+
+        print(f"Resizing logo to: {target_logo_w}x{target_logo_h} (Scale: {logo_scale:.2f})")
+        logo = logo.resize((target_logo_w, target_logo_h), Image.Resampling.LANCZOS)
+        logo_w, logo_h = logo.size  # Get actual size after resize
+
+        # Calculate top-left position from relative CENTER coordinates
+        # (logo_x_rel, logo_y_rel are percentages 0.0-1.0 of the center point)
+        center_x_px = logo_x_rel * card_width
+        center_y_px = logo_y_rel * card_height
+
+        # Calculate top-left corner coordinates for pasting
+        paste_x = int(center_x_px - (logo_w / 2))
+        paste_y = int(center_y_px - (logo_h / 2))
+
+        # --- Boundary Check (Optional but Recommended) ---
+        paste_x = max(0, min(paste_x, card_width - logo_w))
+        paste_y = max(0, min(paste_y, card_height - logo_h))
+        # --- End Boundary Check ---
+
+        paste_position = (paste_x, paste_y)
+        print(f"Calculated paste position (top-left): {paste_position}")
 
         # Paste logo
+        # The third argument 'logo' acts as the mask for transparency
         background.paste(logo, paste_position, logo)
 
         # Save final image to buffer
@@ -171,14 +182,12 @@ def overlay_logo(background_base64, logo_bytes, position, card_width, card_heigh
         background.save(final_image_buffer, format='PNG')
         final_image_buffer.seek(0)
 
-        # Optional: Save final result for debugging
-        # timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
-        # background.save(os.path.join("results", f"final_{timestamp}.png"))
-
         return final_image_buffer
 
     except Exception as e:
         print(f"Error during image composition: {e}")
+        # It's often helpful to re-raise the exception after logging
+        # to ensure the calling function knows something went wrong.
         raise
 
 
@@ -240,17 +249,24 @@ def generate_card_endpoint():
     if 'logo' not in request.files:
         return jsonify({"error": "Логотип не был загружен."}), 400
     logo_file = request.files['logo']
-    position = request.form.get('position')
+
+    try:
+        logo_x_rel = request.form.get('logoX', default=0.5, type=float)  # Expecting 0.0-1.0
+        logo_y_rel = request.form.get('logoY', default=0.5, type=float)  # Expecting 0.0-1.0
+        logo_scale = request.form.get('logoScale', default=0.5, type=float)  # Expecting e.g. 0.2-1.0
+        print(f"Received Position/Scale: X={logo_x_rel:.3f}, Y={logo_y_rel:.3f}, Scale={logo_scale:.3f}")
+    except ValueError:
+        return jsonify({"error": "Некорректные значения для позиции или размера логотипа."}), 400
+
     mode = request.form.get('mode') # 'generate' or 'upload'
 
-    print(f"Received Data: Mode='{mode}', Position='{position}', Logo='{logo_file.filename}'")
+    print(f"Received Data: Mode='{mode}', Logo='{logo_file.filename}'")
 
     if not mode or mode not in ['generate', 'upload']:
         return jsonify({"error": "Некорректный режим работы."}), 400
-    if not position:
-        return jsonify({"error": "Необходимо выбрать позицию логотипа."}), 400
     if logo_file.filename == '':
          return jsonify({"error": "Не выбран файл логотипа."}), 400
+
 
     # --- Process Logo (Save & Remove Background) ---
     logo_path = None # Initialize logo_path
@@ -285,8 +301,8 @@ def generate_card_endpoint():
             prompt = request.form.get('prompt')
             style = request.form.get('style')
             print(f"Generate Mode: Prompt='{prompt}', Style='{style}'")
-            if not prompt or not style:
-                 return jsonify({"error": "Необходимо ввести промпт и выбрать стиль для генерации."}), 400
+            if not prompt:  # Style can be DEFAULT
+                return jsonify({"error": "Необходимо ввести промпт для генерации."}), 400
 
             api = FusionBrainAPI(API_URL, API_KEY, SECRET_KEY)
             pipeline_id = api.get_pipeline()
@@ -297,15 +313,16 @@ def generate_card_endpoint():
                  return jsonify({"error": "Не удалось сгенерировать фоновое изображение."}), 500
             print("Background generated successfully.")
 
+
         elif mode == 'upload':
-            if 'backgroundFile' not in request.files:
-                 return jsonify({"error": "Файл фона не был загружен."}), 400
-            bg_file = request.files['backgroundFile']
+            if 'background' not in request.files:
+                return jsonify({"error": "Файл фона не был загружен (ожидался ключ 'background')."}), 400
+
+            bg_file = request.files['background']  # Use 'background' key
             if bg_file.filename == '':
-                 return jsonify({"error": "Не выбран файл фона."}), 400
+                return jsonify({"error": "Не выбран файл фона."}), 400
 
             print(f"Upload Mode: Background File='{bg_file.filename}'")
-            # Read file and encode to base64
             bg_file_bytes = bg_file.read()
             background_base64 = base64.b64encode(bg_file_bytes).decode('utf-8')
             print("Background uploaded and encoded successfully.")
@@ -323,8 +340,10 @@ def generate_card_endpoint():
 
         final_image_buffer = overlay_logo(
             background_base64,
-            processed_logo_bytes, # Pass bytes after rembg
-            position,
+            processed_logo_bytes,
+            logo_x_rel,  # Pass relative X (0.0-1.0)
+            logo_y_rel,  # Pass relative Y (0.0-1.0)
+            logo_scale,  # Pass scale (e.g., 0.5)
             TARGET_WIDTH,
             TARGET_HEIGHT
         )
