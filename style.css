@@ -597,19 +597,23 @@ textarea:focus {
 }
 
 .default-style {
-    background-image: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+    /* Заменяем linear-gradient на url() */
+    background-image: url('../placeholders/default.png'); /* Путь относительно CSS файла */
 }
 
 .kandinsky-style {
-    background-image: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%);
+    /* Заменяем linear-gradient на url() */
+    background-image: url('../placeholders/kandinsky.png'); /* Путь относительно CSS файла */
 }
 
 .uhd-style {
-    background-image: linear-gradient(135deg, #5ee7df 0%, #b490ca 100%);
+    /* Заменяем linear-gradient на url() */
+    background-image: url('../placeholders/uhd.png'); /* Путь относительно CSS файла */
 }
 
 .anime-style {
-    background-image: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+    /* Заменяем linear-gradient на url() */
+    background-image: url('../placeholders/anime.png'); /* Путь относительно CSS файла */
 }
 
 .style-card span {
