@@ -9,6 +9,7 @@ from flask import Flask, request, jsonify, send_file
 from PIL import Image, ImageOps, ImageEnhance # Added ImageOps, ImageEnhance for potential future retouching
 from werkzeug.utils import secure_filename # For safe filenames
 from rembg import remove
+from giga import GigaChatClient, GigaChatAPIError
 
 # --- Configuration ---
 API_KEY = '8DA5C10BB6C112ABC8A1631455344B59' # Consider using environment variables
@@ -20,6 +21,34 @@ UPLOAD_FOLDER = 'uploads'
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 # Optional: Keep results folder for saving final images if needed
 # os.makedirs("results", exist_ok=True)
+
+GIGA_CLIENT_ID = '62d5f574-b143-410a-b6f4-9880b8b8b5ef' # Или используйте os.environ.get
+GIGA_CLIENT_SECRET = 'ad8a0333-0ea8-44ff-9d2c-fc1323b82db5' # Или используйте os.environ.get
+GIGA_SCOPE = os.environ.get("GIGACHAT_SCOPE", "GIGACHAT_API_PERS")
+GIGA_VERIFY_SSL = False # Поставьте False, если есть проблемы с SSL
+
+# Инициализируем клиент один раз при старте приложения
+try:
+    giga_client = GigaChatClient(GIGA_CLIENT_ID, GIGA_CLIENT_SECRET, scope=GIGA_SCOPE, verify_ssl=GIGA_VERIFY_SSL)
+    print("GigaChatClient успешно инициализирован для Flask.")
+except ValueError as e:
+    print(f"Ошибка инициализации GigaChatClient: {e}")
+    giga_client = None # Устанавливаем в None, чтобы обработать это в роуте
+
+# Системная инструкция для улучшения промпта (взята из giga.py)
+SYSTEM_PROMPT_IMPROVER = """Роль: AI-улучшатель промптов для генерации изображений (Stable Diffusion, Midjourney).
+Задача: Превращать краткие/неясные запросы в детализированные, эффективные промпты.
+Действия:
+Детализируй: Субъект, действие, фон.
+Добавь: Стиль (фото, арт, 3D, рендер, специфичный), освещение, атмосферу.
+Уточни: Композицию (кадр: крупный, средний, общий).
+Включи: Ключевые слова качества (высокая детализация, 8k, фотореалистично).
+Выход: Улучшенный, структурированный промпт.
+Примеры Улучшений (для контекста, не включать в сам промпт):
+Плохой: кошка
+Улучшенный: Фотореалистичный рыжий кот породы мейн-кун, спящий, свернувшись калачиком, в мягком кресле у окна, утренний солнечный свет, уютная атмосфера, детализированный мех, снимок крупным планом
+Плохой: пейзаж
+Улучшенный: Эпический фантастический пейзаж, плавучие острова, соединенные светящимися мостами, закат с двумя лунами, водопады, низвергающиеся в облака внизу, стиль цифровой живописи, высокая детализация, яркие цвета, волшебная атмосфера."""
 
 
 # --- FusionBrain API Class (No changes needed) ---
@@ -159,6 +188,48 @@ app = Flask(__name__, static_folder='.', static_url_path='')
 @app.route('/')
 def index():
     return app.send_static_file('index.html')
+
+@app.route('/improve-prompt', methods=['POST'])
+def improve_prompt_endpoint():
+    if not giga_client:
+        return jsonify({"error": "Сервис улучшения промптов временно недоступен (ошибка конфигурации)."}), 503
+
+    try:
+        data = request.get_json()
+        user_prompt = data.get('prompt')
+
+        if not user_prompt:
+            return jsonify({"error": "Промпт не может быть пустым."}), 400
+
+        messages = [
+            {"role": "system", "content": SYSTEM_PROMPT_IMPROVER},
+            {"role": "user", "content": user_prompt}
+        ]
+
+        print(f"Отправка промпта '{user_prompt}' в GigaChat для улучшения...")
+        response = giga_client.chat(messages, model="GigaChat") # Используем GigaChat-Pro или другую подходящую модель
+
+        if response and "choices" in response and response["choices"]:
+            improved_prompt = response["choices"][0].get("message", {}).get("content")
+            if improved_prompt:
+                print(f"GigaChat вернул улучшенный промпт: {improved_prompt}")
+                return jsonify({"improved_prompt": improved_prompt.strip()})
+            else:
+                print("GigaChat API вернул ответ без контента.")
+                return jsonify({"error": "Не удалось получить улучшенный промпт от GigaChat."}), 500
+        else:
+            print(f"Неожиданный ответ от GigaChat API: {response}")
+            return jsonify({"error": "Неожиданный ответ от сервиса улучшения промптов."}), 500
+
+    except GigaChatAPIError as e:
+        print(f"Ошибка GigaChat API при улучшении промпта: {e}")
+        return jsonify({"error": f"Ошибка сервиса улучшения промптов: {e.message}"}), e.status_code
+    except requests.exceptions.RequestException as e:
+         print(f"Сетевая ошибка при обращении к GigaChat: {e}")
+         return jsonify({"error": "Сетевая ошибка при обращении к сервису улучшения промптов."}), 504
+    except Exception as e:
+        print(f"Непредвиденная ошибка при улучшении промпта: {e}")
+        return jsonify({"error": "Внутренняя ошибка сервера при улучшении промпта."}), 500
 
 @app.route('/generate-card', methods=['POST'])
 def generate_card_endpoint():

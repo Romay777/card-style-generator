@@ -38,6 +38,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const resultImage = document.getElementById('result-image');
     const downloadBtn = document.getElementById('download-btn');
     const restartBtn = document.getElementById('restart-btn');
+    const promptInput = document.getElementById('prompt-input'); // Получаем textarea
+    const improvePromptBtn = document.getElementById('improve-prompt-btn'); // Получаем кнопку
 
     // State variables
     let logoFile = null;
@@ -320,6 +322,58 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+    if (improvePromptBtn && promptInput) {
+        improvePromptBtn.addEventListener('click', async () => {
+            const currentPrompt = promptInput.value.trim();
+            if (!currentPrompt) {
+                showError('Пожалуйста, введите текст промпта для улучшения.');
+                return;
+            }
+
+            // Визуальное состояние загрузки
+            const originalButtonText = improvePromptBtn.querySelector('span').textContent;
+            improvePromptBtn.disabled = true;
+            improvePromptBtn.querySelector('span').textContent = 'Улучшаем...';
+            hideError();
+
+            try {
+                const response = await fetch('/improve-prompt', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ prompt: currentPrompt }),
+                });
+
+                const data = await response.json(); // Пытаемся распарсить JSON в любом случае
+
+                if (response.ok) {
+                    if (data.improved_prompt) {
+                        promptInput.value = data.improved_prompt; // Обновляем поле ввода
+                        // Подсветка поля
+                        promptInput.classList.add('highlighted');
+                        setTimeout(() => {
+                            promptInput.classList.remove('highlighted');
+                        }, 1000); // Убираем подсветку через 1 секунду
+                    } else {
+                         showError(data.error || 'Сервер вернул пустой улучшенный промпт.');
+                    }
+                } else {
+                    // Показываем ошибку из JSON ответа, если есть, иначе общую
+                    showError(data.error || `Ошибка ${response.status}: Не удалось улучшить промпт.`);
+                }
+
+            } catch (error) {
+                console.error('Ошибка при улучшении промпта:', error);
+                showError('Сетевая ошибка или не удалось связаться с сервисом улучшения промптов.');
+            } finally {
+                // Возвращаем кнопку в исходное состояние
+                improvePromptBtn.disabled = false;
+                improvePromptBtn.querySelector('span').textContent = originalButtonText;
+            }
+        });
+    }
+
     // Form submission
     designForm.addEventListener('submit', async (event) => {
         event.preventDefault();
@@ -375,8 +429,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 const contentType = response.headers.get("content-type");
                 if (contentType && contentType.includes("image/")) {
                     const imageBlob = await response.blob();
-                    const imageObjectURL = URL.createObjectURL(imageBlob);
-                    resultImage.src = imageObjectURL;
+                    resultImage.src = URL.createObjectURL(imageBlob);
                     resultArea.classList.remove('hidden');
                     resultArea.scrollIntoView({ behavior: 'smooth' });
                 } else {
