@@ -150,70 +150,70 @@ class GigaChatClient:
         return response.json()
 
 # --- Пример использования ---
-if __name__ == "__main__":
-    try:
-        # CLIENT_ID = os.environ.get("GIGACHAT_CLIENT_ID")
-        # CLIENT_SECRET = os.environ.get("GIGACHAT_CLIENT_SECRET")
-        CLIENT_ID = '62d5f574-b143-410a-b6f4-9880b8b8b5ef'
-        CLIENT_SECRET = 'ad8a0333-0ea8-44ff-9d2c-fc1323b82db5'
-        SCOPE = os.environ.get("GIGACHAT_SCOPE", "GIGACHAT_API_PERS")
-
-        if not CLIENT_ID or not CLIENT_SECRET:
-             raise ValueError("Пожалуйста, установите переменные окружения GIGACHAT_CLIENT_ID и GIGACHAT_CLIENT_SECRET.")
-
-        VERIFY_SSL = False # Поставьте False, если есть проблемы с SSL-сертификатами
-
-        giga_client = GigaChatClient(CLIENT_ID, CLIENT_SECRET, scope=SCOPE, verify_ssl=VERIFY_SSL)
-        print("GigaChatClient инициализирован.")
-
-        # Системная инструкция
-        SYSTEM_PROMPT = """Роль: AI-улучшатель промптов для генерации изображений (Stable Diffusion, Midjourney).
-                Задача: Превращать краткие/неясные запросы в детализированные, эффективные промпты.
-                Действия:
-                Детализируй: Субъект, действие, фон.
-                Добавь: Стиль (фото, арт, 3D, рендер, специфичный), освещение, атмосферу.
-                Уточни: Композицию (кадр: крупный, средний, общий).
-                Включи: Ключевые слова качества (высокая детализация, 8k, фотореалистично).
-                Выход: Улучшенный, структурированный промпт.
-                Примеры Улучшений (для контекста, не включать в сам промпт):
-                Плохой: кошка
-                Улучшенный: Фотореалистичный рыжий кот породы мейн-кун, спящий, свернувшись калачиком, в мягком кресле у окна, утренний солнечный свет, уютная атмосфера, детализированный мех, снимок крупным планом
-                Плохой: пейзаж
-                Улучшенный: Эпический фантастический пейзаж, плавучие острова, соединенные светящимися мостами, закат с двумя лунами, водопады, низвергающиеся в облака внизу, стиль цифровой живописи, высокая детализация, яркие цвета, волшебная атмосфера."""
-
-        # Получение сообщения от пользователя
-        user_message_content = input("Введите ваше сообщение для GigaChat: ")
-
-        if not user_message_content.strip():
-            print("Сообщение не может быть пустым.")
-        else:
-            messages = [
-                {"role": "system", "content": SYSTEM_PROMPT},
-                {"role": "user", "content": user_message_content}
-            ]
-
-            print("\n--- Отправка сообщения GigaChat ---")
-            try:
-                # Вы можете выбрать другую модель, если необходимо, например, "GigaChat-Pro"
-                response = giga_client.chat(messages, model="GigaChat-2")
-
-                if response and "choices" in response and response["choices"]:
-                    assistant_message = response["choices"][0].get("message", {}).get("content")
-                    if assistant_message:
-                        print(f"\nGigaChat: {assistant_message}")
-                    else:
-                        print("Не удалось получить контент ответа от GigaChat.")
-                    print(f"Использование токенов: {response.get('usage')}")
-                else:
-                    print("Получен неожиданный ответ от API:")
-                    print(response)
-
-            except GigaChatAPIError as e:
-                print(f"Ошибка во время чата: {e}")
-            except (KeyError, IndexError) as e:
-                print(f"Ошибка при разборе ответа чата: {e} - Ответ: {response if 'response' in locals() else 'Ответ не получен'}")
-
-    except ValueError as e:
-        print(f"Ошибка конфигурации: {e}")
-    except Exception as e:
-        print(f"Произошла непредвиденная ошибка: {e}")
+# if __name__ == "__main__":
+#     try:
+#         # CLIENT_ID = os.environ.get("GIGACHAT_CLIENT_ID")
+#         # CLIENT_SECRET = os.environ.get("GIGACHAT_CLIENT_SECRET")
+#         CLIENT_ID = '62d5f574-b143-410a-b6f4-9880b8b8b5ef'
+#         CLIENT_SECRET = 'ad8a0333-0ea8-44ff-9d2c-fc1323b82db5'
+#         SCOPE = os.environ.get("GIGACHAT_SCOPE", "GIGACHAT_API_PERS")
+#
+#         if not CLIENT_ID or not CLIENT_SECRET:
+#              raise ValueError("Пожалуйста, установите переменные окружения GIGACHAT_CLIENT_ID и GIGACHAT_CLIENT_SECRET.")
+#
+#         VERIFY_SSL = False # Поставьте False, если есть проблемы с SSL-сертификатами
+#
+#         giga_client = GigaChatClient(CLIENT_ID, CLIENT_SECRET, scope=SCOPE, verify_ssl=VERIFY_SSL)
+#         print("GigaChatClient инициализирован.")
+#
+#         # Системная инструкция
+#         SYSTEM_PROMPT = """Роль: AI-улучшатель промптов для генерации изображений (Stable Diffusion, Midjourney).
+#                 Задача: Превращать краткие/неясные запросы в детализированные, эффективные промпты.
+#                 Действия:
+#                 Детализируй: Субъект, действие, фон.
+#                 Добавь: Стиль (фото, арт, 3D, рендер, специфичный), освещение, атмосферу.
+#                 Уточни: Композицию (кадр: крупный, средний, общий).
+#                 Включи: Ключевые слова качества (высокая детализация, 8k, фотореалистично).
+#                 Выход: Улучшенный, структурированный промпт.
+#                 Примеры Улучшений (для контекста, не включать в сам промпт):
+#                 Плохой: кошка
+#                 Улучшенный: Фотореалистичный рыжий кот породы мейн-кун, спящий, свернувшись калачиком, в мягком кресле у окна, утренний солнечный свет, уютная атмосфера, детализированный мех, снимок крупным планом
+#                 Плохой: пейзаж
+#                 Улучшенный: Эпический фантастический пейзаж, плавучие острова, соединенные светящимися мостами, закат с двумя лунами, водопады, низвергающиеся в облака внизу, стиль цифровой живописи, высокая детализация, яркие цвета, волшебная атмосфера."""
+#
+#         # Получение сообщения от пользователя
+#         user_message_content = input("Введите ваше сообщение для GigaChat: ")
+#
+#         if not user_message_content.strip():
+#             print("Сообщение не может быть пустым.")
+#         else:
+#             messages = [
+#                 {"role": "system", "content": SYSTEM_PROMPT},
+#                 {"role": "user", "content": user_message_content}
+#             ]
+#
+#             print("\n--- Отправка сообщения GigaChat ---")
+#             try:
+#                 # Вы можете выбрать другую модель, если необходимо, например, "GigaChat-Pro"
+#                 response = giga_client.chat(messages, model="GigaChat-2")
+#
+#                 if response and "choices" in response and response["choices"]:
+#                     assistant_message = response["choices"][0].get("message", {}).get("content")
+#                     if assistant_message:
+#                         print(f"\nGigaChat: {assistant_message}")
+#                     else:
+#                         print("Не удалось получить контент ответа от GigaChat.")
+#                     print(f"Использование токенов: {response.get('usage')}")
+#                 else:
+#                     print("Получен неожиданный ответ от API:")
+#                     print(response)
+#
+#             except GigaChatAPIError as e:
+#                 print(f"Ошибка во время чата: {e}")
+#             except (KeyError, IndexError) as e:
+#                 print(f"Ошибка при разборе ответа чата: {e} - Ответ: {response if 'response' in locals() else 'Ответ не получен'}")
+#
+#     except ValueError as e:
+#         print(f"Ошибка конфигурации: {e}")
+#     except Exception as e:
+#         print(f"Произошла непредвиденная ошибка: {e}")
