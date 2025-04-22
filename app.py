@@ -4,16 +4,16 @@ import requests
 import base64
 import os
 import datetime
-import io # For handling images in memory
+import io  # For handling images in memory
 from flask import Flask, request, jsonify, send_file
-from PIL import Image, ImageOps, ImageEnhance # Added ImageOps, ImageEnhance for potential future retouching
-from werkzeug.utils import secure_filename # For safe filenames
+from PIL import Image, ImageOps, ImageEnhance  # Added ImageOps, ImageEnhance for potential future retouching
+from werkzeug.utils import secure_filename  # For safe filenames
 from rembg import remove
 from giga import GigaChatClient, GigaChatAPIError
 
 # --- Configuration ---
-API_KEY = '8DA5C10BB6C112ABC8A1631455344B59' # Consider using environment variables
-SECRET_KEY = '25EA78E09DB215C238DB649EFB737BBE' # Consider using environment variables
+API_KEY = '8DA5C10BB6C112ABC8A1631455344B59'  # Consider using environment variables
+SECRET_KEY = '25EA78E09DB215C238DB649EFB737BBE'  # Consider using environment variables
 API_URL = 'https://api-key.fusionbrain.ai/'
 TARGET_WIDTH = 1032
 TARGET_HEIGHT = 648
@@ -21,11 +21,13 @@ UPLOAD_FOLDER = 'uploads'
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 # Optional: Keep results folder for saving final images if needed
 # os.makedirs("results", exist_ok=True)
+PLACEHOLDERS_FOLDER = 'placeholders'  # Добавляем папку для шаблонов
+CARD_TEMPLATE_PATH = os.path.join(PLACEHOLDERS_FOLDER, 'card-vanished.png')
 
-GIGA_CLIENT_ID = '62d5f574-b143-410a-b6f4-9880b8b8b5ef' # Или используйте os.environ.get
-GIGA_CLIENT_SECRET = 'ad8a0333-0ea8-44ff-9d2c-fc1323b82db5' # Или используйте os.environ.get
+GIGA_CLIENT_ID = '62d5f574-b143-410a-b6f4-9880b8b8b5ef'  # Или используйте os.environ.get
+GIGA_CLIENT_SECRET = 'ad8a0333-0ea8-44ff-9d2c-fc1323b82db5'  # Или используйте os.environ.get
 GIGA_SCOPE = os.environ.get("GIGACHAT_SCOPE", "GIGACHAT_API_PERS")
-GIGA_VERIFY_SSL = False # Поставьте False, если есть проблемы с SSL
+GIGA_VERIFY_SSL = False  # Поставьте False, если есть проблемы с SSL
 
 # Инициализируем клиент один раз при старте приложения
 try:
@@ -33,7 +35,7 @@ try:
     print("GigaChatClient успешно инициализирован для Flask.")
 except ValueError as e:
     print(f"Ошибка инициализации GigaChatClient: {e}")
-    giga_client = None # Устанавливаем в None, чтобы обработать это в роуте
+    giga_client = None  # Устанавливаем в None, чтобы обработать это в роуте
 
 # Системная инструкция для улучшения промпта (взята из giga.py)
 SYSTEM_PROMPT_IMPROVER = """Роль: AI-улучшатель промптов для генерации изображений (Stable Diffusion, Midjourney).
@@ -49,6 +51,27 @@ SYSTEM_PROMPT_IMPROVER = """Роль: AI-улучшатель промптов �
 Улучшенный: Фотореалистичный рыжий кот породы мейн-кун, спящий, свернувшись калачиком, в мягком кресле у окна, утренний солнечный свет, уютная атмосфера, детализированный мех, снимок крупным планом
 Плохой: пейзаж
 Улучшенный: Эпический фантастический пейзаж, плавучие острова, соединенные светящимися мостами, закат с двумя лунами, водопады, низвергающиеся в облака внизу, стиль цифровой живописи, высокая детализация, яркие цвета, волшебная атмосфера."""
+
+# --- Pre-load Card Template ---
+CARD_TEMPLATE_IMAGE = None
+try:
+    if not os.path.exists(CARD_TEMPLATE_PATH):
+        print(f"!!! ОШИБКА: Файл шаблона карты не найден по пути: {CARD_TEMPLATE_PATH}")
+        # Можно либо прервать выполнение, либо продолжить без шаблона,
+        # но лучше сообщить об ошибке. Для простоты пока оставляем None.
+    else:
+        print(f"Загрузка шаблона карты из: {CARD_TEMPLATE_PATH}")
+        template_img = Image.open(CARD_TEMPLATE_PATH).convert("RGBA")
+        # Сразу изменим размер шаблона под целевой размер карты для эффективности
+        if template_img.size != (TARGET_WIDTH, TARGET_HEIGHT):
+            print(f"Изменение размера шаблона карты с {template_img.size} до {TARGET_WIDTH}x{TARGET_HEIGHT}")
+            CARD_TEMPLATE_IMAGE = template_img.resize((TARGET_WIDTH, TARGET_HEIGHT), Image.Resampling.LANCZOS)
+        else:
+            CARD_TEMPLATE_IMAGE = template_img
+        print("Шаблон карты успешно загружен и подготовлен.")
+
+except Exception as e:
+    print(f"!!! КРИТИЧЕСКАЯ ОШИБКА при загрузке/обработке шаблона карты: {e}")
 
 
 # --- FusionBrain API Class (No changes needed) ---
@@ -80,19 +103,21 @@ class FusionBrainAPI:
         print(f"Starting generation: P='{prompt}', S='{style}', W={width}, H={height}")
         params = {
             "type": "GENERATE", "numImages": 1, "width": width, "height": height,
-            "generateParams": { "query": f'{prompt}' }
+            "generateParams": {"query": f'{prompt}'}
         }
         if style and style != "DEFAULT": params["style"] = style
         data = {'pipeline_id': (None, pipeline), 'params': (None, json.dumps(params), 'application/json')}
         try:
-            response = requests.post(self.URL + 'key/api/v1/pipeline/run', headers=self.AUTH_HEADERS, files=data, timeout=60)
+            response = requests.post(self.URL + 'key/api/v1/pipeline/run', headers=self.AUTH_HEADERS, files=data,
+                                     timeout=60)
             response.raise_for_status()
             data = response.json()
             print(f"Generation request response: {data}")
-            if 'uuid' in data: return data['uuid']
+            if 'uuid' in data:
+                return data['uuid']
             else:
-                 error_msg = data.get('errorDescription', data.get('message', str(data)))
-                 raise ValueError(f"API error starting generation: {error_msg}")
+                error_msg = data.get('errorDescription', data.get('message', str(data)))
+                raise ValueError(f"API error starting generation: {error_msg}")
         except Exception as e:
             print(f"Error starting generation: {e}")
             raise
@@ -102,26 +127,32 @@ class FusionBrainAPI:
         print(f"Checking status for UUID: {request_id}")
         while attempts > 0:
             try:
-                response = requests.get(self.URL + 'key/api/v1/pipeline/status/' + request_id, headers=self.AUTH_HEADERS, timeout=30)
+                response = requests.get(self.URL + 'key/api/v1/pipeline/status/' + request_id,
+                                        headers=self.AUTH_HEADERS, timeout=30)
                 response.raise_for_status()
                 data = response.json()
                 status = data.get('status', 'UNKNOWN')
-                print(f"Attempt {21-attempts}/20: Status = {status}")
+                print(f"Attempt {21 - attempts}/20: Status = {status}")
                 if status == 'DONE':
                     if data.get('censored', False): print("Warning: Generation result is censored.")
                     if data.get('result') and data['result'].get('files'):
-                         return data['result']['files'][0]
+                        return data['result']['files'][0]
                     else:
-                         print(f"Status 'DONE' but no image data found. Response: {data}")
-                         return None
+                        print(f"Status 'DONE' but no image data found. Response: {data}")
+                        return None
                 elif status == 'FAIL':
                     error_desc = data.get('errorDescription', 'Unknown generation error')
                     print(f"Generation failed: {error_desc}")
                     return None
-            except requests.exceptions.RequestException as e: print(f"Network error checking status: {e}. Retrying...")
-            except Exception as e: print(f"Error checking status: {e}. Response: {response.text if 'response' in locals() else 'N/A'}"); return None
-            attempts -= 1; time.sleep(delay)
-        print("Generation timed out."); return None
+            except requests.exceptions.RequestException as e:
+                print(f"Network error checking status: {e}. Retrying...")
+            except Exception as e:
+                print(
+                    f"Error checking status: {e}. Response: {response.text if 'response' in locals() else 'N/A'}"); return None
+            attempts -= 1;
+            time.sleep(delay)
+        print("Generation timed out.");
+        return None
 
 
 # --- Image Composition Function (Minor refactoring for clarity) ---
@@ -138,8 +169,9 @@ def overlay_logo(background_base64, logo_bytes, logo_x_rel, logo_y_rel, logo_sca
 
         # Ensure background matches target size
         if background.size != (card_width, card_height):
-             print(f"Warning: Background size {background.size} differs from target {card_width}x{card_height}. Resizing.")
-             background = background.resize((card_width, card_height), Image.Resampling.LANCZOS)
+            print(
+                f"Warning: Background size {background.size} differs from target {card_width}x{card_height}. Resizing.")
+            background = background.resize((card_width, card_height), Image.Resampling.LANCZOS)
 
         # Open logo from bytes (already processed by rembg)
         logo = Image.open(io.BytesIO(logo_bytes)).convert("RGBA")
@@ -176,6 +208,20 @@ def overlay_logo(background_base64, logo_bytes, logo_x_rel, logo_y_rel, logo_sca
         # Paste logo
         # The third argument 'logo' acts as the mask for transparency
         background.paste(logo, paste_position, logo)
+        print("Логотип наложен на фон.")  # Добавим лог
+
+        if CARD_TEMPLATE_IMAGE:
+            print("Наложение шаблона элементов карты...")
+            # Шаблон уже должен быть нужного размера и RGBA
+            # Накладываем его поверх всего (включая логотип)
+            # Третий аргумент CARD_TEMPLATE_IMAGE используется как маска для прозрачности
+            background.paste(CARD_TEMPLATE_IMAGE, (0, 0), CARD_TEMPLATE_IMAGE)
+            print("Шаблон элементов карты успешно наложен.")
+        else:
+            # Если шаблон не загрузился, выводим предупреждение, но продолжаем
+            print("!!! ПРЕДУПРЕЖДЕНИЕ: Шаблон карты не загружен, результат будет без элементов карты.")
+            # Можно здесь выбросить исключение, если шаблон обязателен:
+            # raise ValueError("Не удалось загрузить обязательный шаблон карты.")
 
         # Save final image to buffer
         final_image_buffer = io.BytesIO()
@@ -194,9 +240,11 @@ def overlay_logo(background_base64, logo_bytes, logo_x_rel, logo_y_rel, logo_sca
 # --- Flask App ---
 app = Flask(__name__, static_folder='.', static_url_path='')
 
+
 @app.route('/')
 def index():
     return app.send_static_file('index.html')
+
 
 @app.route('/improve-prompt', methods=['POST'])
 def improve_prompt_endpoint():
@@ -216,7 +264,7 @@ def improve_prompt_endpoint():
         ]
 
         print(f"Отправка промпта '{user_prompt}' в GigaChat для улучшения...")
-        response = giga_client.chat(messages, model="GigaChat") # Используем GigaChat-Pro или другую подходящую модель
+        response = giga_client.chat(messages, model="GigaChat")  # Используем GigaChat-Pro или другую подходящую модель
 
         if response and "choices" in response and response["choices"]:
             improved_prompt = response["choices"][0].get("message", {}).get("content")
@@ -234,11 +282,12 @@ def improve_prompt_endpoint():
         print(f"Ошибка GigaChat API при улучшении промпта: {e}")
         return jsonify({"error": f"Ошибка сервиса улучшения промптов: {e.message}"}), e.status_code
     except requests.exceptions.RequestException as e:
-         print(f"Сетевая ошибка при обращении к GigaChat: {e}")
-         return jsonify({"error": "Сетевая ошибка при обращении к сервису улучшения промптов."}), 504
+        print(f"Сетевая ошибка при обращении к GigaChat: {e}")
+        return jsonify({"error": "Сетевая ошибка при обращении к сервису улучшения промптов."}), 504
     except Exception as e:
         print(f"Непредвиденная ошибка при улучшении промпта: {e}")
         return jsonify({"error": "Внутренняя ошибка сервера при улучшении промпта."}), 500
+
 
 @app.route('/generate-card', methods=['POST'])
 def generate_card_endpoint():
@@ -258,18 +307,17 @@ def generate_card_endpoint():
     except ValueError:
         return jsonify({"error": "Некорректные значения для позиции или размера логотипа."}), 400
 
-    mode = request.form.get('mode') # 'generate' or 'upload'
+    mode = request.form.get('mode')  # 'generate' or 'upload'
 
     print(f"Received Data: Mode='{mode}', Logo='{logo_file.filename}'")
 
     if not mode or mode not in ['generate', 'upload']:
         return jsonify({"error": "Некорректный режим работы."}), 400
     if logo_file.filename == '':
-         return jsonify({"error": "Не выбран файл логотипа."}), 400
-
+        return jsonify({"error": "Не выбран файл логотипа."}), 400
 
     # --- Process Logo (Save & Remove Background) ---
-    logo_path = None # Initialize logo_path
+    logo_path = None  # Initialize logo_path
     processed_logo_bytes = None
     try:
         filename = secure_filename(f"{datetime.datetime.now().strftime('%Y%m%d%H%M%S')}_{logo_file.filename}")
@@ -278,21 +326,20 @@ def generate_card_endpoint():
         print(f"Logo saved temporarily to: {logo_path}")
 
         with open(logo_path, 'rb') as f_in:
-             input_bytes = f_in.read()
-        processed_logo_bytes = remove(input_bytes) # Remove background
+            input_bytes = f_in.read()
+        processed_logo_bytes = remove(input_bytes)  # Remove background
         print("Logo background removed.")
 
     except Exception as e:
         print(f"Error processing logo: {e}")
-        if logo_path and os.path.exists(logo_path): # Clean up if save succeeded but rembg failed
-             os.remove(logo_path)
+        if logo_path and os.path.exists(logo_path):  # Clean up if save succeeded but rembg failed
+            os.remove(logo_path)
         return jsonify({"error": f"Ошибка обработки логотипа: {e}"}), 500
     finally:
-         # Clean up original saved logo file *after* rembg processing
-         if logo_path and os.path.exists(logo_path):
+        # Clean up original saved logo file *after* rembg processing
+        if logo_path and os.path.exists(logo_path):
             os.remove(logo_path)
             print(f"Temporary original logo cleaned up: {logo_path}")
-
 
     # --- Get Background (Generate or Upload) ---
     background_base64 = None
@@ -309,8 +356,8 @@ def generate_card_endpoint():
             uuid = api.generate(prompt, pipeline_id, TARGET_WIDTH, TARGET_HEIGHT, style)
             background_base64 = api.check_generation(uuid)
             if not background_base64:
-                 # api.check_generation should have printed the error
-                 return jsonify({"error": "Не удалось сгенерировать фоновое изображение."}), 500
+                # api.check_generation should have printed the error
+                return jsonify({"error": "Не удалось сгенерировать фоновое изображение."}), 500
             print("Background generated successfully.")
 
 
@@ -331,12 +378,11 @@ def generate_card_endpoint():
         print(f"Error getting background (mode: {mode}): {e}")
         return jsonify({"error": f"Ошибка получения фона: {e}"}), 500
 
-
     # --- Composite Image ---
     final_image_buffer = None
     try:
         if not background_base64 or not processed_logo_bytes:
-             raise ValueError("Missing background or processed logo data for composition.")
+            raise ValueError("Missing background or processed logo data for composition.")
 
         final_image_buffer = overlay_logo(
             background_base64,
@@ -348,14 +394,13 @@ def generate_card_endpoint():
             TARGET_HEIGHT
         )
         if not final_image_buffer:
-             raise ValueError("Image composition returned None")
+            raise ValueError("Image composition returned None")
         print("Image composition successful.")
 
     except Exception as e:
         print(f"Error during composition step: {e}")
         return jsonify({"error": f"Ошибка наложения логотипа: {e}"}), 500
     # No finally needed here as temp logo is already cleaned up
-
 
     # --- Send Result Back ---
     end_time = time.time()
@@ -365,6 +410,7 @@ def generate_card_endpoint():
         mimetype='image/png',
         as_attachment=False
     )
+
 
 if __name__ == '__main__':
     print("Starting Flask server...")
