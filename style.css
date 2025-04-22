@@ -770,8 +770,8 @@ textarea:focus {
     box-shadow: var(--shadow-md);
     overflow: hidden; /* Prevent logo dragging outside */
     cursor: crosshair; /* Indicate interaction area */
-    background-image: linear-gradient(45deg, #f1f5f9 25%, #e2e8f0 25%, #e2e8f0 50%, #f1f5f9 50%, #f1f5f9 75%, #e2e8f0 75%, #e2e8f0 100%);
-    background-size: 40px 40px; /* Optional checkerboard */
+    /*background-image: linear-gradient(45deg, #f1f5f9 25%, #e2e8f0 25%, #e2e8f0 50%, #f1f5f9 50%, #f1f5f9 75%, #e2e8f0 75%, #e2e8f0 100%);*/
+    background-image: url("../placeholders/card-mock.png");
 }
 
 /* Modify existing .logo-preview or add if removed */
