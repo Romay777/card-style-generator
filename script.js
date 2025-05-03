@@ -56,6 +56,7 @@ document.addEventListener('DOMContentLoaded', () => {
             baseWidth: 100, // Default width in px for scaling reference
             baseHeight: 0, // Will be calculated based on aspect ratio
         },
+        designOnlyImageUrl: null, // <<<--- ДОБАВИТЬ: URL для скачивания чистого дизайна
         dragInfo: {
             isDragging: false,
             mouseOffsetX: 0,
@@ -592,6 +593,12 @@ document.addEventListener('DOMContentLoaded', () => {
         // Show loading
         showLoading(true);
 
+        if (state.designOnlyImageUrl) {
+            URL.revokeObjectURL(state.designOnlyImageUrl);
+            state.designOnlyImageUrl = null;
+        }
+        elements.results.image.src = ''; // Очищаем старое изображение на время загрузки
+
         try {
             const response = await fetch('/generate-card', {
                 method: 'POST',
@@ -602,28 +609,86 @@ document.addEventListener('DOMContentLoaded', () => {
                 const contentType = response.headers.get("content-type");
                 if (contentType && contentType.includes("image/")) {
                     const imageBlob = await response.blob();
-                    elements.results.image.src = URL.createObjectURL(imageBlob);
+                    // Создаем URL для ЧИСТОГО дизайна (фон + лого)
+                    state.designOnlyImageUrl = URL.createObjectURL(imageBlob); // <<<--- СОХРАНЯЕМ URL
+
+                    // Отображаем композитное изображение (дизайн + шаблон) через Canvas
+                    await displayCompositeImage(state.designOnlyImageUrl); // <<<--- ИСПОЛЬЗУЕМ НОВУЮ ФУНКЦИЮ
+
                     elements.results.area.classList.remove('hidden');
                     elements.results.area.scrollIntoView({ behavior: 'smooth' });
                 } else {
-                    const errorData = await response.json();
-                    showError(errorData.error || 'Неизвестная ошибка от сервера.');
+                    let errorMsg = `Ошибка сервера: ${response.status}`;
+                    try {
+                        const errorData = await response.json();
+                        errorMsg = errorData.error || errorMsg;
+                    } catch (e) {
+                        console.error("Не удалось прочитать ответ сервера как JSON");
+                    }
+                    showError(errorMsg);
                 }
-            } else {
-                let errorMsg = `Ошибка сервера: ${response.status}`;
-                try {
-                    const errorData = await response.json();
-                    errorMsg = errorData.error || errorMsg;
-                } catch (e) {
-                    console.error("Не удалось прочитать ответ сервера как JSON");
-                }
-                showError(errorMsg);
-            }
-        } catch (error) {
-            console.error('Fetch error:', error);
-            showError('Сетевая ошибка или ошибка при отправке запроса.');
-        } finally {
+            }  }
+        catch (error) {
+                console.error('Fetch error:', error);
+                showError('Сетевая ошибка или ошибка при отправке запроса.');
+            } finally {
             showLoading(false);
+        }
+    }
+
+    async function displayCompositeImage(designUrl) {
+        const displayImgElement = elements.results.image; // Элемент <img> для показа результата
+        const templateImgElement = document.getElementById('card-template-img'); // Скрытый <img> с шаблоном
+
+        if (!templateImgElement) {
+            console.error("Элемент шаблона карты #card-template-img не найден!");
+            // Показываем только дизайн как запасной вариант
+            displayImgElement.src = designUrl;
+            return;
+        }
+
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+
+        // Загружаем оба изображения (дизайн и шаблон)
+        const loadImage = (src) => {
+            return new Promise((resolve, reject) => {
+                const img = new Image();
+                img.onload = () => resolve(img);
+                img.onerror = (err) => {
+                    console.error(`Ошибка загрузки изображения: ${src}`, err);
+                    reject(err);
+                };
+                img.src = src;
+            });
+        };
+
+        try {
+            // Ждем загрузки обоих изображений
+            const [designImage, templateImage] = await Promise.all([
+                loadImage(designUrl),
+                loadImage(templateImgElement.src) // Загружаем шаблон из скрытого img
+            ]);
+
+            // Устанавливаем размер Canvas по размеру дизайна
+            canvas.width = designImage.naturalWidth;
+            canvas.height = designImage.naturalHeight;
+
+            // 1. Рисуем дизайн (фон + лого)
+            ctx.drawImage(designImage, 0, 0);
+
+            // 2. Рисуем шаблон карты поверх
+            // Убедимся, что шаблон рисуется на весь размер холста
+            ctx.drawImage(templateImage, 0, 0, canvas.width, canvas.height);
+
+            // Устанавливаем результат Canvas как src для отображаемого <img>
+            displayImgElement.src = canvas.toDataURL('image/png');
+
+        } catch (error) {
+            console.error("Ошибка при создании композитного изображения на Canvas:", error);
+            // Показываем только дизайн как запасной вариант при ошибке
+            displayImgElement.src = designUrl;
+            showError("Не удалось наложить шаблон карты для предпросмотра. Результат будет без него.");
         }
     }
 
@@ -650,9 +715,16 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- Results Functions ---
     function downloadResult() {
+        // Используем сохраненный URL ЧИСТОГО дизайна
+        if (!state.designOnlyImageUrl) {
+            console.error("URL чистого дизайна для скачивания не найден.");
+            showError("Не удалось подготовить файл для скачивания.");
+            return;
+        }
+
         const link = document.createElement('a');
-        link.href = elements.results.image.src;
-        link.download = 'card-design.png';
+        link.href = state.designOnlyImageUrl; // <<<--- ИСПОЛЬЗУЕМ URL ЧИСТОГО ДИЗАЙНА
+        link.download = 'card-design.png'; // Имя файла при скачивании
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
@@ -708,6 +780,13 @@ document.addEventListener('DOMContentLoaded', () => {
         elements.navigation.progressLines.forEach(line => {
             line.classList.remove('active');
         });
+
+        // Сброс URL и изображения результата
+        if (state.designOnlyImageUrl) {
+            URL.revokeObjectURL(state.designOnlyImageUrl); // Освобождаем память
+            state.designOnlyImageUrl = null; // <<<--- СБРОС URL
+        }
+        elements.results.image.src = ''; // <<<--- СБРОС ОТОБРАЖАЕМОГО ИЗОБРАЖЕНИЯ
 
         // Reset background option tabs
         document.querySelector('.option-tab.active').classList.remove('active');

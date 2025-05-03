@@ -166,81 +166,47 @@ class FusionBrainAPI:
 def overlay_logo(background_base64, logo_bytes, logo_x_rel, logo_y_rel, logo_scale, card_width, card_height):
     """Overlays logo (already processed by rembg) onto background (as base64)."""
     try:
-        # Decode background
+        # ... (код декодирования background, ретуши, проверки размера фона остается прежним) ...
         bg_image_data = base64.b64decode(background_base64)
         background = Image.open(io.BytesIO(bg_image_data)).convert("RGBA")
-
-        # Optional: Apply basic background retouching here if desired
         background = ImageOps.autocontrast(background.convert("RGB"), cutoff=0.5).convert("RGBA")
-        # enhancer_sharp = ImageEnhance.Sharpness(background); background = enhancer_sharp.enhance(1.1)
-
-        # Ensure background matches target size
         if background.size != (card_width, card_height):
             print(
                 f"Warning: Background size {background.size} differs from target {card_width}x{card_height}. Resizing.")
             background = background.resize((card_width, card_height), Image.Resampling.LANCZOS)
 
-        # Open logo from bytes (already processed by rembg)
+        # ... (код открытия логотипа, расчета размера и позиции остается прежним) ...
         logo = Image.open(io.BytesIO(logo_bytes)).convert("RGBA")
-
         base_max_logo_w = card_width * 0.25
         aspect_ratio = logo.height / logo.width
         target_logo_w = int(base_max_logo_w * logo_scale)
         target_logo_h = int(target_logo_w * aspect_ratio)
-
         target_logo_w = max(target_logo_w, 5)
         target_logo_h = max(target_logo_h, 5)
-
-        print(f"Resizing logo to: {target_logo_w}x{target_logo_h} (Scale: {logo_scale:.2f})")
         logo = logo.resize((target_logo_w, target_logo_h), Image.Resampling.LANCZOS)
-        logo_w, logo_h = logo.size  # Get actual size after resize
-
-        # Calculate top-left position from relative CENTER coordinates
-        # (logo_x_rel, logo_y_rel are percentages 0.0-1.0 of the center point)
+        logo_w, logo_h = logo.size
         center_x_px = logo_x_rel * card_width
         center_y_px = logo_y_rel * card_height
-
-        # Calculate top-left corner coordinates for pasting
         paste_x = int(center_x_px - (logo_w / 2))
         paste_y = int(center_y_px - (logo_h / 2))
-
-        # --- Boundary Check (Optional but Recommended) ---
         paste_x = max(0, min(paste_x, card_width - logo_w))
         paste_y = max(0, min(paste_y, card_height - logo_h))
-        # --- End Boundary Check ---
-
         paste_position = (paste_x, paste_y)
         print(f"Calculated paste position (top-left): {paste_position}")
 
         # Paste logo
-        # The third argument 'logo' acts as the mask for transparency
         background.paste(logo, paste_position, logo)
-        print("Логотип наложен на фон.")  # Добавим лог
+        print("Логотип наложен на фон.") # Убедимся, что логотип наложен
 
-        if CARD_TEMPLATE_IMAGE:
-            print("Наложение шаблона элементов карты...")
-            # Шаблон уже должен быть нужного размера и RGBA
-            # Накладываем его поверх всего (включая логотип)
-            # Третий аргумент CARD_TEMPLATE_IMAGE используется как маска для прозрачности
-            background.paste(CARD_TEMPLATE_IMAGE, (0, 0), CARD_TEMPLATE_IMAGE)
-            print("Шаблон элементов карты успешно наложен.")
-        else:
-            # Если шаблон не загрузился, выводим предупреждение, но продолжаем
-            print("!!! ПРЕДУПРЕЖДЕНИЕ: Шаблон карты не загружен, результат будет без элементов карты.")
-            # Можно здесь выбросить исключение, если шаблон обязателен:
-            # raise ValueError("Не удалось загрузить обязательный шаблон карты.")
-
-        # Save final image to buffer
+        # Save final image (только фон + лого) to buffer
         final_image_buffer = io.BytesIO()
         background.save(final_image_buffer, format='PNG')
         final_image_buffer.seek(0)
 
-        return final_image_buffer
+        return final_image_buffer # Возвращаем буфер БЕЗ шаблона карты
 
     except Exception as e:
         print(f"Error during image composition: {e}")
-        # It's often helpful to re-raise the exception after logging
-        # to ensure the calling function knows something went wrong.
         raise
 
 
