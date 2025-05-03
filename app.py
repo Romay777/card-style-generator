@@ -10,24 +10,31 @@ from PIL import Image, ImageOps, ImageEnhance  # Added ImageOps, ImageEnhance fo
 from werkzeug.utils import secure_filename  # For safe filenames
 from rembg import remove
 from giga import GigaChatClient, GigaChatAPIError
+from dotenv import load_dotenv
 
-# --- Configuration ---
-API_KEY = '8DA5C10BB6C112ABC8A1631455344B59'  # Consider using environment variables
-SECRET_KEY = '25EA78E09DB215C238DB649EFB737BBE'  # Consider using environment variables
-API_URL = 'https://api-key.fusionbrain.ai/'
-TARGET_WIDTH = 1032
-TARGET_HEIGHT = 648
-UPLOAD_FOLDER = 'uploads'
-os.makedirs(UPLOAD_FOLDER, exist_ok=True)
-# Optional: Keep results folder for saving final images if needed
-# os.makedirs("results", exist_ok=True)
+# Load environment variables
+load_dotenv()
+
+# --- Configuration from .env ---
+API_URL = os.environ.get('FUSION_API_URL', 'https://api-key.fusionbrain.ai/')
+API_KEY = os.environ.get('FUSION_API_KEY')
+SECRET_KEY = os.environ.get('FUSION_SECRET_KEY')
+TARGET_WIDTH = int(os.environ.get('TARGET_WIDTH', 1032))
+TARGET_HEIGHT = int(os.environ.get('TARGET_HEIGHT', 648))
+UPLOAD_FOLDER = os.environ.get('UPLOAD_FOLDER', 'uploads')
 PLACEHOLDERS_FOLDER = 'placeholders'  # Добавляем папку для шаблонов
-CARD_TEMPLATE_PATH = os.path.join(PLACEHOLDERS_FOLDER, 'card-vanished.png')
+CARD_TEMPLATE_PATH = os.path.join(os.environ.get('CARD_TEMPLATE_PATH', 'placeholders'), 'card-vanished.png')
 
-GIGA_CLIENT_ID = '62d5f574-b143-410a-b6f4-9880b8b8b5ef'  # Или используйте os.environ.get
-GIGA_CLIENT_SECRET = 'ad8a0333-0ea8-44ff-9d2c-fc1323b82db5'  # Или используйте os.environ.get
+GIGA_CLIENT_ID = os.environ.get('GIGA_CLIENT_ID')
+GIGA_CLIENT_SECRET = os.environ.get('GIGA_CLIENT_SECRET')
 GIGA_SCOPE = os.environ.get("GIGACHAT_SCOPE", "GIGACHAT_API_PERS")
-GIGA_VERIFY_SSL = False  # Поставьте False, если есть проблемы с SSL
+GIGA_VERIFY_SSL = os.environ.get("GIGA_VERIFY_SSL", "False").lower() != "false"
+
+# System prompt for improving prompts
+SYSTEM_PROMPT_IMPROVER = os.environ.get('PROMPT_SYSTEM', """Роль: AI-улучшатель промптов для генерации изображений...""")
+
+# Create folders if they don't exist
+os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
 # Инициализируем клиент один раз при старте приложения
 try:
