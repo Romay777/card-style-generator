@@ -11,8 +11,8 @@ from flask import Flask, request, jsonify, send_file
 from rembg import remove
 from werkzeug.utils import secure_filename  # For safe filenames
 
-from fusion_brain import FusionBrainAPI
-from giga import GigaChatClient, GigaChatAPIError
+from services.fusion_brain import FusionBrainAPI
+from services.giga import GigaChatClient, GigaChatAPIError
 
 # Load environment variables
 load_dotenv()
@@ -220,7 +220,6 @@ def generate_card_endpoint():
             os.remove(logo_path)
         return jsonify({"error": f"Ошибка обработки логотипа: {e}"}), 500
     finally:
-        # Clean up original saved logo file *after* rembg processing
         if logo_path and os.path.exists(logo_path):
             os.remove(logo_path)
             print(f"Temporary original logo cleaned up: {logo_path}")
@@ -284,7 +283,6 @@ def generate_card_endpoint():
     except Exception as e:
         print(f"Error during composition step: {e}")
         return jsonify({"error": f"Ошибка наложения логотипа: {e}"}), 500
-    # No finally needed here as temp logo is already cleaned up
 
     # --- Send Result Back ---
     end_time = time.time()
@@ -298,6 +296,4 @@ def generate_card_endpoint():
 
 if __name__ == '__main__':
     print("Starting Flask server...")
-    # Ensure ONNXRuntime is installed: pip install onnxruntime
-    # Ensure rembg is installed: pip install rembg
     app.run(debug=True, port=5000)
