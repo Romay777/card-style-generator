@@ -1,17 +1,18 @@
-import json
-import time
-import requests
 import base64
-import os
 import datetime
 import io  # For handling images in memory
-from flask import Flask, request, jsonify, send_file
-from PIL import Image, ImageOps, ImageEnhance
-from werkzeug.utils import secure_filename  # For safe filenames
-from rembg import remove
-from giga import GigaChatClient, GigaChatAPIError
+import os
+import time
+
+import requests
+from PIL import Image, ImageOps
 from dotenv import load_dotenv
+from flask import Flask, request, jsonify, send_file
+from rembg import remove
+from werkzeug.utils import secure_filename  # For safe filenames
+
 from fusion_brain import FusionBrainAPI
+from giga import GigaChatClient, GigaChatAPIError
 
 # Load environment variables
 load_dotenv()
@@ -32,33 +33,23 @@ GIGA_SCOPE = os.environ.get("GIGACHAT_SCOPE", "GIGACHAT_API_PERS")
 GIGA_VERIFY_SSL = os.environ.get("GIGA_VERIFY_SSL", "False").lower() != "false"
 
 # System prompt for improving prompts
-SYSTEM_PROMPT_IMPROVER = os.environ.get('PROMPT_SYSTEM', """Роль: AI-улучшатель промптов для генерации изображений...""")
+SYSTEM_PROMPT_IMPROVER = os.environ.get('PROMPT_SYSTEM', """Роль: AI-улучшатель промптов для генерации изображений""")
 
 # Create folders if they don't exist
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
-# Инициализируем клиент один раз при старте приложения
+# Инициализируем клиенты один раз при старте приложения
 try:
     giga_client = GigaChatClient(GIGA_CLIENT_ID, GIGA_CLIENT_SECRET, scope=GIGA_SCOPE, verify_ssl=GIGA_VERIFY_SSL)
-    print("GigaChatClient успешно инициализирован для Flask.")
 except ValueError as e:
     print(f"Ошибка инициализации GigaChatClient: {e}")
     giga_client = None  # Устанавливаем в None, чтобы обработать это в роуте
 
-# Системная инструкция для улучшения промпта (взята из giga.py)
-SYSTEM_PROMPT_IMPROVER = """Роль: AI-улучшатель промптов для генерации изображений (Stable Diffusion, Midjourney).
-Задача: Превращать краткие/неясные запросы в детализированные, эффективные промпты.
-Действия:
-Детализируй: Субъект, действие, фон.
-Добавь: Стиль (фото, арт, 3D, рендер, специфичный), освещение, атмосферу.
-Уточни: Композицию (кадр: крупный, средний, общий).
-Включи: Ключевые слова качества (высокая детализация, 8k, фотореалистично).
-Выход: Улучшенный, структурированный промпт, который должен быть написан в одну строчку через запятые, как в примерах!!! Не пиши ничего, кроме самого промпта.
-Примеры Улучшений (для контекста, не включать в сам промпт):
-Плохой: кошка
-Улучшенный: Фотореалистичный рыжий кот породы мейн-кун, спящий, свернувшись калачиком, в мягком кресле у окна, утренний солнечный свет, уютная атмосфера, детализированный мех, снимок крупным планом
-Плохой: пейзаж
-Улучшенный: Эпический фантастический пейзаж, плавучие острова, соединенные светящимися мостами, закат с двумя лунами, водопады, низвергающиеся в облака внизу, стиль цифровой живописи, высокая детализация, яркие цвета, волшебная атмосфера."""
+try:
+    fusion_api_client = FusionBrainAPI(API_URL, API_KEY, SECRET_KEY)
+except Exception as e:
+    print(f"!!! ОШИБКА инициализации FusionBrainAPI: {e}")
+    fusion_api_client = None
 
 # --- Pre-load Card Template ---
 CARD_TEMPLATE_IMAGE = None
@@ -116,14 +107,14 @@ def overlay_logo(background_base64, logo_bytes, logo_x_rel, logo_y_rel, logo_sca
 
         # Paste logo
         background.paste(logo, paste_position, logo)
-        print("Логотип наложен на фон.") # Убедимся, что логотип наложен
+        print("Логотип наложен на фон.")  # Убедимся, что логотип наложен
 
         # Save final image (только фон + лого) to buffer
         final_image_buffer = io.BytesIO()
         background.save(final_image_buffer, format='PNG')
         final_image_buffer.seek(0)
 
-        return final_image_buffer # Возвращаем буфер БЕЗ шаблона карты
+        return final_image_buffer  # Возвращаем буфер БЕЗ шаблона карты
 
     except Exception as e:
         print(f"Error during image composition: {e}")
@@ -244,7 +235,7 @@ def generate_card_endpoint():
             if not prompt:  # Style can be DEFAULT
                 return jsonify({"error": "Необходимо ввести промпт для генерации."}), 400
 
-            api = FusionBrainAPI(API_URL, API_KEY, SECRET_KEY)
+            api = fusion_api_client
             pipeline_id = api.get_pipeline()
             uuid = api.generate(prompt, pipeline_id, TARGET_WIDTH, TARGET_HEIGHT, style)
             background_base64 = api.check_generation(uuid)

@@ -16,7 +16,8 @@ class FusionBrainAPI:
             'X-Key': f'Key {api_key}',
             'X-Secret': f'Secret {secret_key}',
         }
-        print(f"FusionBrainAPI initialized for URL: {self.URL}")
+        print(f"FusionBrainAPI инициализирован")
+        # print(f"FusionBrainAPI initialized for URL: {self.URL}")
 
     def get_pipeline(self):
         """Получает ID первого доступного pipeline."""

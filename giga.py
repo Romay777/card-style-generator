@@ -47,6 +47,8 @@ class GigaChatClient:
             import urllib3
             urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
+        print(f"GigaChatClient инициализирован")
+
     def _get_auth_credentials_base64(self) -> str:
         credentials = f"{self.client_id}:{self.client_secret}"
         encoded_credentials = base64.b64encode(credentials.encode()).decode()
