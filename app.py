@@ -6,11 +6,12 @@ import os
 import datetime
 import io  # For handling images in memory
 from flask import Flask, request, jsonify, send_file
-from PIL import Image, ImageOps, ImageEnhance  # Added ImageOps, ImageEnhance for potential future retouching
+from PIL import Image, ImageOps, ImageEnhance
 from werkzeug.utils import secure_filename  # For safe filenames
 from rembg import remove
 from giga import GigaChatClient, GigaChatAPIError
 from dotenv import load_dotenv
+from fusion_brain import FusionBrainAPI
 
 # Load environment variables
 load_dotenv()
@@ -79,87 +80,6 @@ try:
 
 except Exception as e:
     print(f"!!! КРИТИЧЕСКАЯ ОШИБКА при загрузке/обработке шаблона карты: {e}")
-
-
-# --- FusionBrain API Class (No changes needed) ---
-class FusionBrainAPI:
-    def __init__(self, url, api_key, secret_key):
-        self.URL = url
-        self.AUTH_HEADERS = {
-            'X-Key': f'Key {api_key}',
-            'X-Secret': f'Secret {secret_key}',
-        }
-
-    def get_pipeline(self):
-        # ... (keep existing code) ...
-        print("Getting pipeline...")
-        try:
-            response = requests.get(self.URL + 'key/api/v1/pipelines', headers=self.AUTH_HEADERS, timeout=30)
-            response.raise_for_status()
-            data = response.json()
-            if not data:
-                raise ValueError("API did not return pipeline list.")
-            print(f"Pipeline info: {data[0]}")
-            return data[0]['id']
-        except Exception as e:
-            print(f"Error getting pipeline: {e}")
-            raise
-
-    def generate(self, prompt, pipeline, width, height, style):
-        # ... (keep existing code) ...
-        print(f"Starting generation: P='{prompt}', S='{style}', W={width}, H={height}")
-        params = {
-            "type": "GENERATE", "numImages": 1, "width": width, "height": height,
-            "generateParams": {"query": f'{prompt}'}
-        }
-        if style and style != "DEFAULT": params["style"] = style
-        data = {'pipeline_id': (None, pipeline), 'params': (None, json.dumps(params), 'application/json')}
-        try:
-            response = requests.post(self.URL + 'key/api/v1/pipeline/run', headers=self.AUTH_HEADERS, files=data,
-                                     timeout=60)
-            response.raise_for_status()
-            data = response.json()
-            print(f"Generation request response: {data}")
-            if 'uuid' in data:
-                return data['uuid']
-            else:
-                error_msg = data.get('errorDescription', data.get('message', str(data)))
-                raise ValueError(f"API error starting generation: {error_msg}")
-        except Exception as e:
-            print(f"Error starting generation: {e}")
-            raise
-
-    def check_generation(self, request_id, attempts=20, delay=5):
-        # ... (keep existing code) ...
-        print(f"Checking status for UUID: {request_id}")
-        while attempts > 0:
-            try:
-                response = requests.get(self.URL + 'key/api/v1/pipeline/status/' + request_id,
-                                        headers=self.AUTH_HEADERS, timeout=30)
-                response.raise_for_status()
-                data = response.json()
-                status = data.get('status', 'UNKNOWN')
-                print(f"Attempt {21 - attempts}/20: Status = {status}")
-                if status == 'DONE':
-                    if data.get('censored', False): print("Warning: Generation result is censored.")
-                    if data.get('result') and data['result'].get('files'):
-                        return data['result']['files'][0]
-                    else:
-                        print(f"Status 'DONE' but no image data found. Response: {data}")
-                        return None
-                elif status == 'FAIL':
-                    error_desc = data.get('errorDescription', 'Unknown generation error')
-                    print(f"Generation failed: {error_desc}")
-                    return None
-            except requests.exceptions.RequestException as e:
-                print(f"Network error checking status: {e}. Retrying...")
-            except Exception as e:
-                print(
-                    f"Error checking status: {e}. Response: {response.text if 'response' in locals() else 'N/A'}"); return None
-            attempts -= 1;
-            time.sleep(delay)
-        print("Generation timed out.");
-        return None
 
 
 # --- Image Composition Function (Minor refactoring for clarity) ---
