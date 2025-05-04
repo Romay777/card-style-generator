@@ -1,14 +1,16 @@
-import requests
 import base64
-import uuid
-import time
 import os
-import mimetypes
-from datetime import datetime, timedelta, timezone
+import time
+import uuid
 
-# --- Configuration ---
-AUTH_URL = "https://ngw.devices.sberbank.ru:9443/api/v2/oauth"
-API_BASE_URL = "https://gigachat.devices.sberbank.ru/api/v1"
+import requests
+from dotenv import load_dotenv
+
+# Load environment variables
+load_dotenv()
+
+AUTH_URL = os.environ.get('GIGA_AUTH_URL')
+API_BASE_URL = os.environ.get('GIGA_API_BASE_URL')
 
 # --- Custom Exception ---
 class GigaChatAPIError(Exception):
