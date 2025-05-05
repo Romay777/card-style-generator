@@ -11,6 +11,7 @@ from flask import Flask, request, jsonify, send_file
 from rembg import remove
 from werkzeug.utils import secure_filename  # For safe filenames
 
+from services import nsfw_detector
 from services.fusion_brain import FusionBrainAPI
 from services.giga import GigaChatClient, GigaChatAPIError
 
@@ -50,6 +51,10 @@ try:
 except Exception as e:
     print(f"!!! ОШИБКА инициализации FusionBrainAPI: {e}")
     fusion_api_client = None
+
+
+nsfw_check_client = nsfw_detector.NsfwDetector()
+
 
 # --- Pre-load Card Template ---
 CARD_TEMPLATE_IMAGE = None
@@ -254,8 +259,12 @@ def generate_card_endpoint():
 
             print(f"Upload Mode: Background File='{bg_file.filename}'")
             bg_file_bytes = bg_file.read()
-            background_base64 = base64.b64encode(bg_file_bytes).decode('utf-8')
+
+
             print("Background uploaded and encoded successfully.")
+            background_base64 = base64.b64encode(bg_file_bytes).decode('utf-8')
+
+
 
     except Exception as e:
         print(f"Error getting background (mode: {mode}): {e}")
