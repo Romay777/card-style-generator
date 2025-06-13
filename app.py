@@ -52,9 +52,7 @@ except Exception as e:
     print(f"!!! ОШИБКА инициализации FusionBrainAPI: {e}")
     fusion_api_client = None
 
-
 nsfw_check_client = nsfw_detector.NsfwDetector()
-
 
 # --- Pre-load Card Template ---
 CARD_TEMPLATE_IMAGE = None
@@ -214,20 +212,47 @@ def generate_card_endpoint():
         logo_file.save(logo_path)
         print(f"Logo saved temporarily to: {logo_path}")
 
-        with open(logo_path, 'rb') as f_in:
+        # --- NSFW check for logo ---
+        try:
+            with open(logo_path, 'rb') as f:
+                raw = f.read()
+            img_logo = Image.open(io.BytesIO(raw))
+            if img_logo.mode != 'RGB':
+                img_logo = img_logo.convert('RGB')
+        except Exception as e:
+            if logo_path and os.path.exists(logo_path):
+                os.remove(logo_path)
+            return jsonify({"error": f"Ошибка подготовки логотипа для проверки NSFW: {e}"}), 500
+
+        is_logo_nsfw = nsfw_check_client.is_nsfw(img_logo)
+        temp_logo_path_to_remove = logo_path
+        logo_path = None  # Сбрасываем, чтобы finally не удалял его снова
+        if is_logo_nsfw is None:
+            if temp_logo_path_to_remove and os.path.exists(temp_logo_path_to_remove):
+                os.remove(temp_logo_path_to_remove)
+            return jsonify({"error": "Не удалось проверить логотип на недопустимое содержание."}), 500
+        if is_logo_nsfw:
+            print('!!! NSFW LOGO DETECTED - BLOCKING !!!')
+            if temp_logo_path_to_remove and os.path.exists(temp_logo_path_to_remove):
+                os.remove(temp_logo_path_to_remove)
+            # ВОЗВРАЩАЕМ СПЕЦИАЛЬНЫЙ ФЛАГ ДЛЯ FRONTEND
+            return jsonify({"error": "Обнаружено недопустимое содержимое в логотипе.", "nsfw_detected": True}), 400
+
+        with open(temp_logo_path_to_remove, 'rb') as f_in:
             input_bytes = f_in.read()
         processed_logo_bytes = remove(input_bytes)  # Remove background
         print("Logo background removed.")
+        if temp_logo_path_to_remove and os.path.exists(temp_logo_path_to_remove):
+            os.remove(temp_logo_path_to_remove)
+            print(f"Temporary original logo cleaned up: {temp_logo_path_to_remove}")
 
     except Exception as e:
         print(f"Error processing logo: {e}")
-        if logo_path and os.path.exists(logo_path):  # Clean up if save succeeded but rembg failed
-            os.remove(logo_path)
+        # Убедимся, что временный файл удален в случае любой другой ошибки
+        if 'temp_logo_path_to_remove' in locals() and temp_logo_path_to_remove and os.path.exists(
+                temp_logo_path_to_remove):
+            os.remove(temp_logo_path_to_remove)
         return jsonify({"error": f"Ошибка обработки логотипа: {e}"}), 500
-    finally:
-        if logo_path and os.path.exists(logo_path):
-            os.remove(logo_path)
-            print(f"Temporary original logo cleaned up: {logo_path}")
 
     # --- Get Background (Generate or Upload) ---
     background_base64 = None
@@ -248,22 +273,31 @@ def generate_card_endpoint():
                 return jsonify({"error": "Не удалось сгенерировать фоновое изображение."}), 500
             print("Background generated successfully.")
 
-
-        elif mode == 'upload':
-            if 'background' not in request.files:
-                return jsonify({"error": "Файл фона не был загружен (ожидался ключ 'background')."}), 400
-
-            bg_file = request.files['background']  # Use 'background' key
+        if mode == 'upload':
+            bg_file = request.files['background']
             if bg_file.filename == '':
                 return jsonify({"error": "Не выбран файл фона."}), 400
 
-            print(f"Upload Mode: Background File='{bg_file.filename}'")
-            bg_file_bytes = bg_file.read()
+            raw_bg = bg_file.read()
+            bg_file.seek(0)
 
+            try:
+                img_bg = Image.open(io.BytesIO(raw_bg))
+                if img_bg.mode != 'RGB':
+                    img_bg = img_bg.convert('RGB')
+            except Exception as e:
+                return jsonify({"error": f"Ошибка подготовки фона для проверки NSFW: {e}"}), 500
+            is_bg_nsfw = nsfw_check_client.is_nsfw(img_bg)
+            if is_bg_nsfw is None:
+                return jsonify({"error": "Не удалось проверить фон на недопустимое содержание."}), 500
+            if is_bg_nsfw:
+                print('!!! NSFW BACKGROUND DETECTED - BLOCKING !!!')
+                # ВОЗВРАЩАЕМ СПЕЦИАЛЬНЫЙ ФЛАГ ДЛЯ FRONTEND
+                return jsonify({"error": "Обнаружено недопустимое содержимое в фоне.", "nsfw_detected": True}), 400
 
-            print("Background uploaded and encoded successfully.")
-            background_base64 = base64.b64encode(bg_file_bytes).decode('utf-8')
-
+            # если всё ок — кодируем фон в base64 и продолжаем
+            background_base64 = base64.b64encode(raw_bg).decode('utf-8')
+            print("Background uploaded and verified successfully.")
 
 
     except Exception as e:

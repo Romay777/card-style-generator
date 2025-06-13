@@ -94,7 +94,7 @@
                     <div class="form-group prompt-container"> <!-- Добавлен div-контейнер -->
                         <div style="flex-grow: 1;"> <!-- Добавлен div для label и textarea -->
                             <label for="prompt-input">Опишите желаемый фон:</label>
-                            <textarea id="prompt-input" rows="3" placeholder="Например: Абстрактные зеленые волны в минималистичном стиле" required></textarea>
+                            <textarea id="prompt-input" name="prompt" rows="3" placeholder="Например: Абстрактные зеленые волны в минималистичном стиле" required></textarea>
                         </div>
                         <!-- НОВАЯ КНОПКА УЛУЧШЕНИЯ -->
                         <button type="button" id="improve-prompt-btn" class="improve-prompt-button" title="Улучшить описание с помощью GigaChat">
@@ -146,7 +146,7 @@
                         <p class="upload-text">Перетащите фон или <span class="upload-link">выберите с устройства</span></p>
                         <p class="upload-hint">PNG или JPG • до 5MB</p>
                     </div>
-                    <input type="file" id="bg-upload" accept="image/png, image/jpeg">
+                    <input type="file" id="bg-upload" name="background" accept="image/png, image/jpeg">
 
                     <div class="preview-area" id="bg-preview-area">
                         <img id="bg-preview" src="#" alt="Предпросмотр фона" />
@@ -206,9 +206,6 @@
             </div>
         </div>
 
-        <div id="error-message" class="error hidden"></div>
-
-
         <div id="result-area" class="result-section hidden">
             <img id="card-template-img" src="/placeholders/card-vanished.png" style="display: none;" alt="Card Template Overlay">
             <div class="result-header">
@@ -236,7 +233,14 @@
                 </div>
             </div>
         </div>
+    </div>
 
+    <!-- Модальное окно для ошибок -->
+    <div id="error-modal-overlay" class="modal-overlay hidden">
+        <div id="error-modal-content" class="modal-content">
+            <button id="error-modal-close" class="modal-close-btn" aria-label="Закрыть">×</button>
+            <p id="error-modal-message"></p>
+        </div>
     </div>
 
     <script src="script.js"></script>

@@ -853,3 +853,79 @@ input[type=range]::-webkit-slider-thumb {
     -webkit-appearance: none;
     margin-top: -7px; /* Adjust vertically */
 }
+
+/* --- Стили Модального Окна Ошибки (Modern 2025) --- */
+.modal-overlay {
+    position: fixed;
+    inset: 0;
+    background-color: rgba(44, 62, 80, 0.6); /* Используем --text-primary с прозрачностью */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.3s ease, visibility 0s linear 0.3s;
+    backdrop-filter: blur(4px); /* Добавляем легкий блюр фона */
+}
+
+.modal-overlay:not(.hidden) {
+    opacity: 1;
+    visibility: visible;
+    transition: opacity 0.3s ease;
+}
+
+.modal-content {
+    background-color: var(--background); /* Белый фон */
+    padding: var(--container-padding); /* Используем общую переменную для паддинга */
+    border-radius: var(--radius-lg); /* Используем общий радиус */
+    box-shadow: var(--shadow-lg);    /* Используем общую тень */
+    max-width: 450px;
+    width: 90%;
+    position: relative;
+    text-align: center;
+    transform: scale(0.95) translateY(10px); /* Слегка другая анимация появления */
+    transition: transform 0.3s ease, opacity 0.3s ease;
+    opacity: 0; /* Начальная прозрачность для анимации */
+}
+
+.modal-overlay:not(.hidden) .modal-content {
+    transform: scale(1) translateY(0); /* Конечное состояние анимации */
+    opacity: 1;
+}
+
+.modal-close-btn {
+    position: absolute;
+    top: 15px;   /* Немного больше отступ */
+    right: 20px; /* Немного больше отступ */
+    background: none;
+    border: none;
+    font-size: 1.75rem; /* Крупнее иконка */
+    line-height: 1;
+    cursor: pointer;
+    color: var(--text-light); /* Светло-серый цвет иконки */
+    padding: 5px;
+    transition: color 0.2s ease, transform 0.2s ease; /* Добавляем transform в transition */
+}
+
+.modal-close-btn:hover {
+    color: var(--text-primary); /* Темнее при наведении */
+    transform: scale(1.1);    /* Слегка увеличиваем при наведении */
+}
+
+#error-modal-message {
+    color: var(--error); /* Используем переменную цвета ошибки */
+    font-size: 1.05rem;   /* Чуть крупнее текст */
+    margin: 0;
+    line-height: 1.5;
+    font-weight: 500; /* Делаем текст немного жирнее */
+}
+
+/* Дополнительно: Можно добавить иконку перед текстом ошибки */
+#error-modal-message::before {
+    content: '⚠️'; /* Или иконка через SVG/font */
+    display: inline-block;
+    margin-right: 8px;
+    font-size: 1.2em;
+    vertical-align: middle; /* Выравниваем иконку */
+}

@@ -32,11 +32,16 @@ document.addEventListener('DOMContentLoaded', () => {
         },
         results: {
             loading: document.getElementById('loading-indicator'),
-            error: document.getElementById('error-message'),
             area: document.getElementById('result-area'),
             image: document.getElementById('result-image'),
             download: document.getElementById('download-btn'),
             restart: document.getElementById('restart-btn')
+        },
+        modal: {
+            overlay: document.getElementById('error-modal-overlay'),
+            content: document.getElementById('error-modal-content'),
+            message: document.getElementById('error-modal-message'),
+            closeBtn: document.getElementById('error-modal-close')
         },
         prompt: {
             input: document.getElementById('prompt-input'),
@@ -112,6 +117,18 @@ document.addEventListener('DOMContentLoaded', () => {
             elements.prompt.improve.addEventListener('click', improvePrompt);
         }
 
+        // Modal closing events <-- ДОБАВИТЬ
+        elements.modal.closeBtn.addEventListener('click', hideError);
+        elements.modal.overlay.addEventListener('click', (e) => {
+            // Закрывать только при клике на сам оверлей, а не на контент внутри
+            if (e.target === elements.modal.overlay) {
+                hideError();
+            }
+        });
+
+        elements.prompt.input.required = true;     // по умолчанию — генерация
+        elements.bg.upload.required = false;
+
         // Initialize progress bar animation
         initProgressBarAnimation();
     }
@@ -158,15 +175,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function updateProgressIndicators(currentSection, isForward) {
         if (isForward) {
-            elements.navigation.progressSteps[currentSection-1].classList.add('completed');
+            elements.navigation.progressSteps[currentSection - 1].classList.add('completed');
             if (currentSection < 3) {
-                elements.navigation.progressLines[currentSection-1].classList.add('active');
+                elements.navigation.progressLines[currentSection - 1].classList.add('active');
                 elements.navigation.progressSteps[currentSection].classList.add('active');
             }
         } else {
             if (currentSection <= 3) {
-                elements.navigation.progressSteps[currentSection-1].classList.remove('active');
-                elements.navigation.progressLines[currentSection-2].classList.remove('active');
+                elements.navigation.progressSteps[currentSection - 1].classList.remove('active');
+                elements.navigation.progressLines[currentSection - 2].classList.remove('active');
             }
         }
     }
@@ -313,7 +330,7 @@ document.addEventListener('DOMContentLoaded', () => {
         elements.bg.dropzone.style.display = 'block';
     }
 
-    function handleTabSwitch() {
+        function handleTabSwitch() {
         // Update active tab
         document.querySelector('.option-tab.active').classList.remove('active');
         this.classList.add('active');
@@ -325,6 +342,23 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // Update hidden input value
         elements.bg.option.value = targetId === 'generate-inputs' ? 'generate' : 'upload';
+
+        const isGenerate = elements.bg.option.value === 'generate';
+
+        // --- ИЗМЕНЕНИЯ ЗДЕСЬ ---
+        // Управляем и required, и disabled для ПОЛЯ ПРОМПТА
+        elements.prompt.input.required = isGenerate;
+        elements.prompt.input.disabled = !isGenerate; // Отключаем поле промпта, если выбран режим загрузки
+
+        // Управляем и required, и disabled для ПОЛЯ ЗАГРУЗКИ ФОНА
+        elements.bg.upload.required = !isGenerate;
+        elements.bg.upload.disabled = isGenerate;   // Отключаем поле загрузки, если выбран режим генерации
+        // --- КОНЕЦ ИЗМЕНЕНИЙ ---
+
+        // Опционально: можно добавить стили для отключенных полей, если стандартных недостаточно
+        // Например, сделать их полупрозрачными
+        elements.prompt.input.closest('.form-group').style.opacity = isGenerate ? '1' : '0.6';
+        elements.bg.upload.closest('.tab-content').style.opacity = !isGenerate ? '1' : '0.6'; // Или применить к .upload-area
     }
 
     // --- Logo Positioning Functions ---
@@ -451,15 +485,23 @@ document.addEventListener('DOMContentLoaded', () => {
         let changed = false;
 
         // Adjust X
-        if (currentLeft < 0) { currentLeft = 0; changed = true; }
+        if (currentLeft < 0) {
+            currentLeft = 0;
+            changed = true;
+        }
         if (currentLeft + currentWidth > containerRect.width) {
-            currentLeft = containerRect.width - currentWidth; changed = true;
+            currentLeft = containerRect.width - currentWidth;
+            changed = true;
         }
 
         // Adjust Y
-        if (currentTop < 0) { currentTop = 0; changed = true; }
+        if (currentTop < 0) {
+            currentTop = 0;
+            changed = true;
+        }
         if (currentTop + currentHeight > containerRect.height) {
-            currentTop = containerRect.height - currentHeight; changed = true;
+            currentTop = containerRect.height - currentHeight;
+            changed = true;
         }
 
         if (changed) {
@@ -524,7 +566,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify({ prompt: currentPrompt }),
+                body: JSON.stringify({prompt: currentPrompt}),
             });
 
             const data = await response.json();
@@ -564,7 +606,23 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
+        // --- ВАЛИДАЦИЯ ПЕРЕД ОТПРАВКОЙ (Используем showError) ---
+        if (!state.logoFile) {
+            showError('Пожалуйста, загрузите логотип компании.');
+            return;
+        }
         const isGenerating = elements.bg.option.value === 'generate';
+        if (isGenerating && !elements.prompt.input.value.trim()) {
+             showError('Пожалуйста, опишите желаемый фон.');
+             return;
+        }
+        if (!isGenerating && !state.backgroundFile) {
+            showError('Пожалуйста, загрузите фон карты.');
+            return;
+        }
+        // --- КОНЕЦ ВАЛИДАЦИИ ---
+
+
         const formData = new FormData();
 
         // Append logo and position data
@@ -613,10 +671,10 @@ document.addEventListener('DOMContentLoaded', () => {
                     state.designOnlyImageUrl = URL.createObjectURL(imageBlob); // <<<--- СОХРАНЯЕМ URL
 
                     // Отображаем композитное изображение (дизайн + шаблон) через Canvas
-                    await displayCompositeImage(state.designOnlyImageUrl); // <<<--- ИСПОЛЬЗУЕМ НОВУЮ ФУНКЦИЮ
+                    await displayCompositeImage(state.designOnlyImageUrl);
 
                     elements.results.area.classList.remove('hidden');
-                    elements.results.area.scrollIntoView({ behavior: 'smooth' });
+                    elements.results.area.scrollIntoView({behavior: 'smooth'});
                 } else {
                     let errorMsg = `Ошибка сервера: ${response.status}`;
                     try {
@@ -627,11 +685,40 @@ document.addEventListener('DOMContentLoaded', () => {
                     }
                     showError(errorMsg);
                 }
-            }  }
-        catch (error) {
-                console.error('Fetch error:', error);
-                showError('Сетевая ошибка или ошибка при отправке запроса.');
-            } finally {
+            } else {
+                // --- ОБРАБОТКА ОШИБОК ---
+                let errorMsg = `Ошибка сервера: ${response.status}`;
+                let isNsfwError = false; // Флаг для NSFW ошибки
+                try {
+                    const errorData = await response.json();
+                    errorMsg = errorData.error || errorMsg;
+                    // ПРОВЕРЯЕМ ФЛАГ NSFW_DETECTED ИЗ БЭКЕНДА
+                    if (errorData && errorData.nsfw_detected === true) {
+                        isNsfwError = true;
+                    }
+                } catch (e) {
+                    console.error("Не удалось прочитать тело ошибки как JSON");
+                    // Если не удалось распарсить JSON, оставляем стандартное сообщение
+                }
+
+                // Показываем сообщение об ошибке
+                showError(errorMsg);
+
+                // ЕСЛИ ЭТО NSFW ОШИБКА - ПЕРЕЗАПУСКАЕМ ПРОЦЕСС (ВОЗВРАЩАЕМ НА ШАГ 1)
+                if (isNsfwError) {
+                    console.log("NSFW content detected, restarting process.");
+                    restartProcess();
+                    // Дополнительно прокручиваем к сообщению об ошибке после перезапуска UI
+                    setTimeout(() => { // Небольшая задержка для гарантии отрисовки
+                        elements.results.error.scrollIntoView({behavior: 'smooth', block: 'center'});
+                    }, 100);
+                }
+                // Для других ошибок просто показываем сообщение, пользователь остается на текущем шаге
+            }
+        } catch (error) {
+            console.error('Fetch error:', error);
+            showError('Сетевая ошибка или ошибка при отправке запроса.');
+        } finally {
             showLoading(false);
         }
     }
@@ -693,14 +780,13 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // --- UI Helper Functions ---
-    function showError(message) {
-        elements.results.error.textContent = message;
-        elements.results.error.classList.remove('hidden');
-        elements.results.error.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    function showError(message) { // <-- ОБНОВЛЕННАЯ ФУНКЦИЯ
+        elements.modal.message.textContent = message; // Вставляем текст в модалку
+        elements.modal.overlay.classList.remove('hidden'); // Показываем оверлей (и модалку)
     }
 
     function hideError() {
-        elements.results.error.classList.add('hidden');
+        elements.modal.overlay.classList.add('hidden'); // Скрываем оверлей (и модалку)
     }
 
     function showLoading(isLoading) {
@@ -804,7 +890,7 @@ document.addEventListener('DOMContentLoaded', () => {
         state.currentSection = 1;
 
         // Scroll to top
-        window.scrollTo({ top: 0, behavior: 'smooth' });
+        window.scrollTo({top: 0, behavior: 'smooth'});
     }
 
     // --- Progress Bar Animation ---
@@ -844,7 +930,7 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         });
 
-        observer.observe(elements.results.loading, { attributes: true });
+        observer.observe(elements.results.loading, {attributes: true});
     }
 
     // Initialize all event listeners
